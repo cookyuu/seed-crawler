@@ -2,9 +2,7 @@ package com.seed_crawler.core.entity;
 
 import com.seed_crawler.core.entity.enums.MemberRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +11,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member")
 public class Member extends BaseTimeEntity{
     @Id
@@ -49,4 +47,12 @@ public class Member extends BaseTimeEntity{
 
     @OneToMany(mappedBy = "executedBy", cascade = CascadeType.ALL)
     private List<JobWorkHistory> jobWorkHistories = new ArrayList<>();
+
+    @Builder
+    public Member(String loginId, String password, String nickname, String email) {
+        this.loginId = loginId;
+        this.password = password;
+        this.nickname = nickname;
+        this.email = email;
+    }
 }

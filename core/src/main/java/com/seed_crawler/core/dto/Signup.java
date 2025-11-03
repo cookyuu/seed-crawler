@@ -1,4 +1,39 @@
 package com.seed_crawler.core.dto;
 
-public class SignUp {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+
+public class Signup {
+    @Getter
+    @AllArgsConstructor
+    public static class Request {
+        private String loginId;
+        private String password;
+        private String nickname;
+        private String email;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Response {
+        private UUID memberId;
+        private String loginId;
+        private String nickname;
+        private String email;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Result {
+        private UUID memberId;
+        private String loginId;
+        private String nickname;
+        private String email;
+    }
 }
