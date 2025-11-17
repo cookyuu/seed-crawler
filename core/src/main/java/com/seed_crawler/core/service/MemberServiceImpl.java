@@ -28,10 +28,10 @@ public class MemberServiceImpl implements MemberService {
         memberValidator.validatePassword(password);
 
         if (memberRepository.existsByLoginId(loginId)) {
-            throw new AppException(ErrorCode.DUPLICATE_REQUEST_EXCEPTION,"입력값 오류","이미 등록된 로그인 아이디입니다.","member.signup.error",null);
+            throw new AppException(ErrorCode.DUPLICATE_REQUEST_EXCEPTION, "이미 등록된 로그인 아이디입니다.","member.signup.error",null);
         }
         if (memberRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.DUPLICATE_REQUEST_EXCEPTION,"입력값 오류","이미 등록된 이메일입니다.","member.signup.error",null);
+            throw new AppException(ErrorCode.DUPLICATE_REQUEST_EXCEPTION, "이미 등록된 이메일입니다.","member.signup.error",null);
         }
         String encodedPw = passwordEncoder.encode(password);
         Member member = memberRepository.save(

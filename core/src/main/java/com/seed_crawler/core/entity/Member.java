@@ -55,4 +55,16 @@ public class Member extends BaseTimeEntity{
         this.nickname = nickname;
         this.email = email;
     }
+    private static final int MAX_FAIL_COUNT = 5;
+
+    public void increasePasswordFailCount() {
+        this.pwFailCnt++;
+        if (this.pwFailCnt >= MAX_FAIL_COUNT) {
+            this.accountLock = true;
+        }
+    }
+
+    public void resetPasswordFailCount() {
+        this.pwFailCnt = 0;
+    }
 }

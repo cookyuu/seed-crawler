@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
         var errCode = ex.getErrorCode();
         var error = ApiResponse.ApiError.builder()
                 .code(errCode.getCode())
-                .title(ex.getTitle())
+                .title(errCode.getTitle())
                 .message(ex.getMessage())
                 .messageCode(ex.getMessageCode())
                 .status(errCode.getStatus().value())
