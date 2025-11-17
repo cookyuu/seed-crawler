@@ -4,9 +4,11 @@ import com.seed_crawler.core.dto.Auth;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.auth.JwtTokenProvider;
 import com.seed_crawler.core.global.exception.AppException;
+import com.seed_crawler.core.global.log.LogEvent;
 import com.seed_crawler.core.global.response.ErrorCode;
 import com.seed_crawler.core.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +21,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @LogEvent("login_attempt")
     public Auth.LoginResult login(String loginId, String password) {
-        // 아이디, 패스워드 일치 검증
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
         if (member.isAccountLock()) {
@@ -33,6 +35,8 @@ public class AuthServiceImpl implements AuthService {
         member.resetPasswordFailCount();
         Auth.TokenResponse tokenResponse = jwtTokenProvider.generateTokens(member.getId(), member.getRole());
         tokenSerivce.storeRefreshToken(member.getId(), tokenResponse.getRefreshToken(), jwtTokenProvider.getRefreshTokenExpirationMs());
+        MDC.put("userId", member.getId().toString());
+
         return new Auth.LoginResult(member.getId(), member.getLoginId(), tokenResponse);
     }
 
