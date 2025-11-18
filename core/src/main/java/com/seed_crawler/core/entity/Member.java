@@ -49,7 +49,8 @@ public class Member extends BaseTimeEntity{
     private List<JobWorkHistory> jobWorkHistories = new ArrayList<>();
 
     @Builder
-    public Member(String loginId, String password, String nickname, String email) {
+    public Member(UUID id, String loginId, String password, String nickname, String email) {
+        this.id = id;
         this.loginId = loginId;
         this.password = password;
         this.nickname = nickname;
