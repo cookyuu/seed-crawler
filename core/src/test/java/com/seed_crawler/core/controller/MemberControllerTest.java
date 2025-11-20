@@ -1,6 +1,6 @@
 package com.seed_crawler.core.controller;
 
-import com.seed_crawler.core.dto.Signup;
+import com.seed_crawler.core.dto.MemberDto;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.repository.MemberRepository;
@@ -16,12 +16,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MemberServiceImplTest {
+class MemberDtoServiceImplTest {
 
     @Mock
     MemberRepository memberRepository;
@@ -36,7 +35,7 @@ class MemberServiceImplTest {
     MemberServiceImpl service;
 
     @Captor
-    ArgumentCaptor<Member> memberCaptor;
+    ArgumentCaptor<com.seed_crawler.core.entity.Member> memberCaptor;
 
     @BeforeEach
     void init() {
@@ -55,7 +54,7 @@ class MemberServiceImplTest {
         when(memberRepository.existsByLoginId(loginId)).thenReturn(false);
         when(memberRepository.existsByEmail(email)).thenReturn(false);
         when(encoder.encode(password)).thenReturn("ENCODED");
-        Member saved = Member.builder()
+        com.seed_crawler.core.entity.Member saved = com.seed_crawler.core.entity.Member.builder()
                 .id(id)
                 .loginId(loginId)
                 .password("ENCODED")
@@ -65,7 +64,7 @@ class MemberServiceImplTest {
 
         when(memberRepository.save(any())).thenReturn(saved);
 
-        Signup.Result result = service.signup(loginId, password, nickname, email);
+        MemberDto.Result result = service.signup(loginId, password, nickname, email);
 
         verify(validator).validateLoginId(loginId);
         verify(validator).validatePassword(password);

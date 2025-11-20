@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 
-public class Signup {
+public class Member {
     @Getter
     @AllArgsConstructor
-    public static class Request {
+    public static class SignupRequest {
         private String loginId;
         private String password;
         private String nickname;
@@ -20,7 +20,7 @@ public class Signup {
     @Getter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Response {
+    public static class SignupResponse {
         private UUID memberId;
         private String loginId;
         private String nickname;
