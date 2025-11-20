@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MemberDtoServiceImplTest {
+class MemberServiceImplTest {
 
     @Mock
     MemberRepository memberRepository;
