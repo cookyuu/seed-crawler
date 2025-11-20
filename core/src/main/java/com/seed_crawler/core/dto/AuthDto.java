@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-public class Auth {
+public class AuthDto {
 
     @Getter
     @AllArgsConstructor

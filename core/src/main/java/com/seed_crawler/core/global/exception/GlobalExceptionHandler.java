@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -118,12 +121,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception ex, HttpServletRequest req) {
         // 로그 남기고(생략)
+        List<ApiResponse.ApiError.Detail> details = new ArrayList<>();
+
+        details.add(ApiResponse.ApiError.Detail.builder().field(ex.getMessage()).reason(Arrays.toString(ex.getStackTrace())).build());
         var error = ApiResponse.ApiError.builder()
                 .code(ErrorCode.INTERNAL_ERROR.getCode())
                 .title("서버 오류")
                 .message("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
                 .messageCode("common.internal.error")
                 .status(ErrorCode.INTERNAL_ERROR.getStatus().value())
+                .details(details)
                 .build();
 
         var meta = ApiResponse.Meta.builder()

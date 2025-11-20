@@ -1,6 +1,6 @@
 package com.seed_crawler.core.controller;
 
-import com.seed_crawler.core.dto.Signup;
+import com.seed_crawler.core.dto.MemberDto;
 import com.seed_crawler.core.global.response.ApiResponse;
 import com.seed_crawler.core.global.response.ApiResponseFactory;
 import com.seed_crawler.core.service.MemberService;
@@ -19,9 +19,9 @@ public class MemberController {
     private final MemberService memberService;
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Signup.Response>> signup(@RequestBody Signup.Request req, HttpServletRequest httpReq) {
-        Signup.Result result = memberService.signup(req.getLoginId(), req.getPassword(), req.getNickname(), req.getEmail());
-        Signup.Response payload = new Signup.Response(
+    public ResponseEntity<ApiResponse<MemberDto.SignupResponse>> signup(@RequestBody MemberDto.SignupRequest req, HttpServletRequest httpReq) {
+        MemberDto.Result result = memberService.signup(req.getLoginId(), req.getPassword(), req.getNickname(), req.getEmail());
+        MemberDto.SignupResponse payload = new MemberDto.SignupResponse(
                 result.getMemberId(),
                 result.getLoginId(),
                 result.getNickname(),

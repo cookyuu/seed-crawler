@@ -1,6 +1,6 @@
 package com.seed_crawler.core.entity.enums;
 
-public enum FetchType {
+public enum JobExecutionType {
     HTML,          // HTML 크롤링
     API_JSON,      // REST API (JSON)
     API_XML,       // REST API (XML)

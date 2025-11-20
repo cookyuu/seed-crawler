@@ -1,12 +1,13 @@
 package com.seed_crawler.core.global.auth;
 
 
-import com.seed_crawler.core.dto.Auth;
+import com.seed_crawler.core.dto.AuthDto;
 import com.seed_crawler.core.entity.enums.MemberRole;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -26,14 +27,27 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-ms:1209600000}") // 14일
     private long refreshTokenExpirationMs;
 
+    private final String AUTH_HEADER = "Authorization";
+    private final String TOKEN_PREFIX = "Bearer ";
+
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    public Auth.TokenResponse generateTokens(UUID memberId, MemberRole role) {
+    public String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader(AUTH_HEADER);
+
+        if (bearerToken != null && bearerToken.startsWith(TOKEN_PREFIX)) {
+            return bearerToken.substring(TOKEN_PREFIX.length());
+        }
+
+        return null;
+    }
+
+    public AuthDto.TokenResponse generateTokens(UUID memberId, MemberRole role) {
         String accessToken = createToken(memberId, role, accessTokenExpirationMs);
         String refreshToken = createToken(memberId, role, refreshTokenExpirationMs);
-        return new Auth.TokenResponse(accessToken, refreshToken);
+        return new AuthDto.TokenResponse(accessToken, refreshToken);
     }
 
     private String createToken(UUID memberId, MemberRole role, long expirationTime) {

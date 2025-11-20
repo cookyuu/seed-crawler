@@ -31,6 +31,7 @@ public class TokenServiceImpl implements TokenSerivce {
         redisTemplate.delete(PREFIX + memberId.toString());
     }
 
+    @LogEvent("validate_refresh_token")
     public UUID validateRefreshToken(String refreshToken, JwtTokenProvider jwtProvider) {
         UUID memberId = jwtProvider.getMemberId(refreshToken);
         MDC.put("userId", memberId.toString());

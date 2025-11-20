@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 
-public class Member {
+public class MemberDto {
     @Getter
     @AllArgsConstructor
     public static class SignupRequest {

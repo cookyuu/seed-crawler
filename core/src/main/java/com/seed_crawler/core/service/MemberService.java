@@ -1,7 +1,7 @@
 package com.seed_crawler.core.service;
 
-import com.seed_crawler.core.dto.Signup;
+import com.seed_crawler.core.dto.MemberDto;
 
 public interface MemberService {
-    Signup.Result signup(String loginId, String password, String nickname, String email);
+    MemberDto.Result signup(String loginId, String password, String nickname, String email);
 }

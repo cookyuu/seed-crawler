@@ -1,7 +1,7 @@
 package com.seed_crawler.core.service;
 
-import com.seed_crawler.core.dto.Auth;
+import com.seed_crawler.core.dto.AuthDto;
 
 public interface AuthService {
-    Auth.LoginResult login(String loginId, String password);
+    AuthDto.LoginResult login(String loginId, String password);
 }

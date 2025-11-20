@@ -1,4 +1,5 @@
 package com.seed_crawler.core.entity.enums;
 
-public class JobResponseType {
+public enum JobResponseType {
+    JSON, XML, HTML, TEXT
 }
