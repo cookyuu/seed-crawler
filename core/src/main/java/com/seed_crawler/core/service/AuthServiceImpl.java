@@ -3,12 +3,12 @@ package com.seed_crawler.core.service;
 import com.seed_crawler.core.dto.AuthDto;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.auth.JwtTokenProvider;
+import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.global.log.LogEvent;
 import com.seed_crawler.core.global.response.ErrorCode;
 import com.seed_crawler.core.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final MemberRepository memberRepository;
-    private final TokenSerivce tokenSerivce;
+    private final TokenService tokenService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final UserContextManager userContextManager;
 
     @Override
     @LogEvent("login_attempt")
@@ -36,8 +37,8 @@ public class AuthServiceImpl implements AuthService {
         }
         member.resetPasswordFailCount();
         AuthDto.TokenResponse tokenResponse = jwtTokenProvider.generateTokens(member.getId(), member.getRole());
-        tokenSerivce.storeRefreshToken(member.getId(), tokenResponse.getRefreshToken(), jwtTokenProvider.getRefreshTokenExpirationMs());
-        MDC.put("userId", member.getId().toString());
+        tokenService.storeRefreshToken(member.getId(), tokenResponse.getRefreshToken(), jwtTokenProvider.getRefreshTokenExpirationMs());
+        userContextManager.setUserId(member.getId());
 
         return new AuthDto.LoginResult(member.getId(), member.getLoginId(), tokenResponse);
     }

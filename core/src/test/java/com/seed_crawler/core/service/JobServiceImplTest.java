@@ -1,16 +1,21 @@
 package com.seed_crawler.core.service;
 
+import com.seed_crawler.core.config.properties.ApplicationProperties;
+import com.seed_crawler.core.converter.ScheduleConverter;
 import com.seed_crawler.core.dto.JobDto;
+import com.seed_crawler.core.dto.command.JobCreationCommand;
 import com.seed_crawler.core.entity.Job;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
 import com.seed_crawler.core.entity.enums.ScheduleType;
+import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.global.response.ErrorCode;
 import com.seed_crawler.core.repository.JobRepository;
 import com.seed_crawler.core.repository.MemberRepository;
 import com.seed_crawler.core.validator.JobValidator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,9 +43,39 @@ class JobServiceImplTest {
     JobRepository jobRepository;
     @Mock
     JobValidator jobValidator;
+    @Mock
+    ScheduleConverter scheduleConverter;
+    @Mock
+    ApplicationProperties appProperties;
+    @Mock
+    UserContextManager userContextManager;
 
     @InjectMocks
     JobServiceImpl jobService;
+
+    @BeforeEach
+    void setUp() {
+        // ApplicationProperties Mock 설정
+        ApplicationProperties.Job job = mock(ApplicationProperties.Job.class);
+        ApplicationProperties.Job.Default defaults = mock(ApplicationProperties.Job.Default.class);
+
+        lenient().when(appProperties.getJob()).thenReturn(job);
+        lenient().when(job.getDefaults()).thenReturn(defaults);
+        lenient().when(defaults.getRetryLimit()).thenReturn(3);
+        lenient().when(defaults.getRetryIntervalSec()).thenReturn(60);
+        lenient().when(defaults.getTimeoutSec()).thenReturn(30);
+
+        // ScheduleConverter Mock 설정
+        lenient().when(scheduleConverter.convert(any(), any())).thenAnswer(invocation -> {
+            ScheduleType type = invocation.getArgument(0);
+            String schedule = invocation.getArgument(1);
+            if (type == ScheduleType.CRON) {
+                return new ScheduleConverter.ParsedSchedule(schedule, null);
+            } else {
+                return new ScheduleConverter.ParsedSchedule(null, Integer.valueOf(schedule));
+            }
+        });
+    }
 
     @AfterEach
     void tearDown() {
@@ -55,6 +90,23 @@ class JobServiceImplTest {
         Member member = new Member();
         ReflectionTestUtils.setField(member, "id", memberId);
 
+        JobCreationCommand command = JobCreationCommand.builder()
+                .memberId(memberId)
+                .title("test")
+                .description("desc")
+                .targetUrl("https://test.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/10 * * * * *")
+                .headerParameters(Map.of())
+                .bodyParameters(Map.of())
+                .queryParameters(Map.of())
+                .retryLimit(3)
+                .retryIntervalSec(10)
+                .timeoutSec(30)
+                .callbackUrl(null)
+                .build();
+
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         Job savedJob = Job.builder()
@@ -66,22 +118,7 @@ class JobServiceImplTest {
         when(jobRepository.save(any(Job.class))).thenReturn(savedJob);
 
         // When
-        JobDto.SaveResult result = jobService.saveJob(
-                memberId,
-                "test",
-                "desc",
-                "https://test.com",
-                JobExecutionType.API_JSON,
-                ScheduleType.CRON,
-                "0/10 * * * * *",
-                Map.of(),
-                Map.of(),
-                Map.of(),
-                3,
-                10,
-                30,
-                null
-        );
+        JobDto.SaveResult result = jobService.saveJob(command);
 
         // Then
         assertThat(result).isNotNull();
@@ -96,6 +133,7 @@ class JobServiceImplTest {
         // Repository 호출 검증
         verify(memberRepository, times(1)).findById(memberId);
         verify(jobRepository, times(1)).save(any(Job.class));
+        verify(userContextManager, times(1)).setUserId(memberId);
     }
 
     @Test
@@ -105,23 +143,25 @@ class JobServiceImplTest {
         UUID memberId = UUID.randomUUID();
         when(memberRepository.findById(memberId)).thenReturn(Optional.empty());
 
+        JobCreationCommand command = JobCreationCommand.builder()
+                .memberId(memberId)
+                .title("test")
+                .description("desc")
+                .targetUrl("https://test.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/10 * * * * *")
+                .headerParameters(Map.of())
+                .bodyParameters(Map.of())
+                .queryParameters(Map.of())
+                .retryLimit(3)
+                .retryIntervalSec(10)
+                .timeoutSec(30)
+                .callbackUrl(null)
+                .build();
+
         // When & Then
-        AppException ex = catchThrowableOfType(() -> jobService.saveJob(
-                memberId,
-                "test",
-                "desc",
-                "https://test.com",
-                JobExecutionType.API_JSON,
-                ScheduleType.CRON,
-                "0/10 * * * * *",
-                Map.of(),
-                Map.of(),
-                Map.of(),
-                3,
-                10,
-                30,
-                null
-        ), AppException.class);
+        AppException ex = catchThrowableOfType(() -> jobService.saveJob(command), AppException.class);
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
         assertThat(ex.getMessage()).contains("회원 정보를 찾을 수 없습니다");
@@ -144,20 +184,25 @@ class JobServiceImplTest {
         doThrow(new AppException(ErrorCode.VALIDATION_ERROR, "URL 주소값 검증 오류", "job.validation.error", null))
                 .when(jobValidator).validateUrl("bad_url");
 
+        JobCreationCommand command = JobCreationCommand.builder()
+                .memberId(memberId)
+                .title("test")
+                .description("desc")
+                .targetUrl("bad_url")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/10 * * * * *")
+                .headerParameters(Map.of())
+                .bodyParameters(Map.of())
+                .queryParameters(Map.of())
+                .retryLimit(3)
+                .retryIntervalSec(10)
+                .timeoutSec(30)
+                .callbackUrl(null)
+                .build();
+
         // When
-        AppException ex = catchThrowableOfType(() -> jobService.saveJob(
-                memberId,
-                "test",
-                "desc",
-                "bad_url",
-                JobExecutionType.API_JSON,
-                ScheduleType.CRON,
-                "0/10 * * * * *",
-                Map.of(),
-                Map.of(),
-                Map.of(),
-                3, 10, 30, null
-        ), AppException.class);
+        AppException ex = catchThrowableOfType(() -> jobService.saveJob(command), AppException.class);
 
         // Then
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR);

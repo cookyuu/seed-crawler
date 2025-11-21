@@ -1,10 +1,12 @@
 package com.seed_crawler.core.service;
 
+import com.seed_crawler.core.config.properties.ApplicationProperties;
+import com.seed_crawler.core.converter.ScheduleConverter;
 import com.seed_crawler.core.dto.JobDto;
+import com.seed_crawler.core.dto.command.JobCreationCommand;
 import com.seed_crawler.core.entity.Job;
 import com.seed_crawler.core.entity.Member;
-import com.seed_crawler.core.entity.enums.JobExecutionType;
-import com.seed_crawler.core.entity.enums.ScheduleType;
+import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.global.log.LogEvent;
 import com.seed_crawler.core.global.response.ErrorCode;
@@ -15,35 +17,58 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
     private final MemberRepository memberRepository;
     private final JobValidator jobValidator;
+    private final ScheduleConverter scheduleConverter;
+    private final ApplicationProperties appProperties;
+    private final UserContextManager userContextManager;
 
     @Override
     @LogEvent("job_save")
     @Transactional
-    public JobDto.SaveResult saveJob(UUID memberId, String title, String description, String targetUrl, JobExecutionType jobExecutionType, ScheduleType scheduleType,
-                                     String schedule, Map<String, Object> headerParameters, Map<String, Object> bodyParameters, Map<String, Object> queryParameters,
-                                     Integer retryLimit, Integer retryIntervalSec, Integer timeoutSec, String callbackUrl) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND,"회원 정보를 찾을 수 없습니다","job.save.error",null));
+    public JobDto.SaveResult saveJob(JobCreationCommand command) {
+        Member member = memberRepository.findById(command.getMemberId())
+                .orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND,"회원 정보를 찾을 수 없습니다","job.save.error",null));
 
-        jobValidator.validateUrl(targetUrl);
-        jobValidator.validateSchedule(scheduleType, schedule);
-        if (callbackUrl != null) {
-            jobValidator.validateUrl(callbackUrl);
+        jobValidator.validateUrl(command.getTargetUrl());
+        jobValidator.validateSchedule(command.getScheduleType(), command.getSchedule());
+        if (command.getCallbackUrl() != null) {
+            jobValidator.validateUrl(command.getCallbackUrl());
         }
-        String cronExpression = scheduleType.equals(ScheduleType.CRON) ? schedule : null;
-        Integer intervalSec = scheduleType.equals(ScheduleType.INTERVAL) ? Integer.valueOf(schedule) : null;
+
+        ScheduleConverter.ParsedSchedule parsedSchedule = scheduleConverter.convert(command.getScheduleType(), command.getSchedule());
+
+        // 기본값 적용: 0이거나 null인 경우 설정 파일의 기본값 사용
+        int retryLimit = (command.getRetryLimit() == null || command.getRetryLimit() == 0)
+                ? appProperties.getJob().getDefaults().getRetryLimit()
+                : command.getRetryLimit();
+        int retryIntervalSec = (command.getRetryIntervalSec() == null || command.getRetryIntervalSec() == 0)
+                ? appProperties.getJob().getDefaults().getRetryIntervalSec()
+                : command.getRetryIntervalSec();
+        int timeoutSec = (command.getTimeoutSec() == null || command.getTimeoutSec() == 0)
+                ? appProperties.getJob().getDefaults().getTimeoutSec()
+                : command.getTimeoutSec();
+
         Job job = jobRepository.save(Job.builder()
-                .title(title).description(description).targetUrl(targetUrl).jobExecutionType(jobExecutionType)
-                .scheduleType(scheduleType).cronExpression(cronExpression).intervalSec(intervalSec).headerParameters(headerParameters)
-                .bodyParameters(bodyParameters).queryParameters(queryParameters).member(member).build());
-        return new JobDto.SaveResult(memberId, job.getId(), title);
+                .title(command.getTitle())
+                .description(command.getDescription())
+                .targetUrl(command.getTargetUrl())
+                .jobExecutionType(command.getJobExecutionType())
+                .scheduleType(command.getScheduleType())
+                .cronExpression(parsedSchedule.getCronExpression())
+                .intervalSec(parsedSchedule.getIntervalSec())
+                .headerParameters(command.getHeaderParameters())
+                .bodyParameters(command.getBodyParameters())
+                .queryParameters(command.getQueryParameters())
+                .retryLimit(retryLimit)
+                .retryIntervalSec(retryIntervalSec)
+                .timeoutSec(timeoutSec)
+                .member(member)
+                .build());
+        return new JobDto.SaveResult(command.getMemberId(), job.getId(), command.getTitle());
     }
 }

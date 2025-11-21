@@ -68,6 +68,12 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token).getBody().getSubject());
     }
 
+    public MemberRole getRole(String token) {
+        String role = Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("role", String.class);
+        return MemberRole.valueOf(role);
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);

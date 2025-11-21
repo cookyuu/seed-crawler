@@ -22,12 +22,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CookieUtils cookieUtils;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthDto.LoginResponse>> login(@RequestBody AuthDto.LoginRequest req, HttpServletRequest httpReq, HttpServletResponse httpRes) {
         long refreshTtlMillis = jwtTokenProvider.getRefreshTokenExpirationMs();
         AuthDto.LoginResult result = authService.login(req.getLoginId(), req.getPassword());
-        CookieUtils.setCookieHttpOnly(httpRes, "refreshToken", result.getToken().getRefreshToken(), (int)(refreshTtlMillis / 1000));
+        cookieUtils.setCookieHttpOnly(httpRes, "refreshToken", result.getToken().getRefreshToken(), (int)(refreshTtlMillis / 1000));
         AuthDto.LoginResponse payload = new AuthDto.LoginResponse(
                 result.getLoginId(),
                 result.getToken().getAccessToken());

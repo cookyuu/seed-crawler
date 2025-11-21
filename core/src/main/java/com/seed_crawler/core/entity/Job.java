@@ -50,9 +50,9 @@ public class Job extends BaseTimeEntity {
     private boolean enabled = true;
 
     private int failCount = 0;
-    private int retryLimit = 3;
-    private int retryIntervalSec = 60;
-    private int timeoutSec = 30;
+    private int retryLimit;
+    private int retryIntervalSec;
+    private int timeoutSec;
 
     @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
@@ -79,7 +79,7 @@ public class Job extends BaseTimeEntity {
         this.description = description;
         this.targetUrl = targetUrl;
         this.scheduleType = scheduleType;
-        this.jobExecutionType =jobExecutionType;
+        this.jobExecutionType = jobExecutionType;
         this.responseType = responseType;
         this.cronExpression = cronExpression;
         this.intervalSec = intervalSec;
@@ -87,9 +87,9 @@ public class Job extends BaseTimeEntity {
         this.queryParameters = queryParameters;
         this.bodyParameters = bodyParameters;
         this.callbackUrl = callbackUrl;
-        this.retryLimit = retryLimit == 0 ? 3 : retryLimit;
-        this.retryIntervalSec = retryIntervalSec == 0 ? 60 : retryIntervalSec;
-        this.timeoutSec = timeoutSec == 0 ? 30 : timeoutSec;
+        this.retryLimit = retryLimit;
+        this.retryIntervalSec = retryIntervalSec;
+        this.timeoutSec = timeoutSec;
         this.enabled = true;
         this.status = JobStatus.STOP;
         this.member = member;

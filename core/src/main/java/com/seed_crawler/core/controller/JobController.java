@@ -1,7 +1,7 @@
 package com.seed_crawler.core.controller;
 
-import com.seed_crawler.core.dto.AuthDto;
 import com.seed_crawler.core.dto.JobDto;
+import com.seed_crawler.core.dto.command.JobCreationCommand;
 import com.seed_crawler.core.global.auth.CustomUserDetails;
 import com.seed_crawler.core.global.response.ApiResponse;
 import com.seed_crawler.core.global.response.ApiResponseFactory;
@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/job")
@@ -25,15 +23,30 @@ public class JobController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<JobDto.SaveResponse>> addJob(@RequestBody JobDto.SaveRequest req, @AuthenticationPrincipal CustomUserDetails user, HttpServletRequest httpReq) {
-        UUID memberId = user.getMemberId();
-        JobDto.SaveResult result = jobService.saveJob(
-                memberId, req.getTitle(), req.getDescription(), req.getTargetUrl(), req.getJobExecutionType(), req.getScheduleType(),
-                req.getSchedule(), req.getHeaderParameters(), req.getBodyParameters(), req.getQueryParameters(), req.getRetryLimit(),
-                req.getRetryIntervalSec(), req.getTimeoutSec(), req.getCallbackUrl());
+        JobCreationCommand command = JobCreationCommand.builder()
+                .memberId(user.getMemberId())
+                .title(req.getTitle())
+                .description(req.getDescription())
+                .targetUrl(req.getTargetUrl())
+                .jobExecutionType(req.getJobExecutionType())
+                .scheduleType(req.getScheduleType())
+                .schedule(req.getSchedule())
+                .headerParameters(req.getHeaderParameters())
+                .bodyParameters(req.getBodyParameters())
+                .queryParameters(req.getQueryParameters())
+                .retryLimit(req.getRetryLimit())
+                .retryIntervalSec(req.getRetryIntervalSec())
+                .timeoutSec(req.getTimeoutSec())
+                .callbackUrl(req.getCallbackUrl())
+                .build();
+
+        JobDto.SaveResult result = jobService.saveJob(command);
+
         JobDto.SaveResponse payload = new JobDto.SaveResponse(
                 result.getMemberId(),
                 result.getJobId(),
                 result.getTitle());
+
         var body = ApiResponseFactory.ok(
                 payload,
                 "크롤링 JOB 등록이 완료되었습니다.",

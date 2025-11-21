@@ -1,14 +1,18 @@
 package com.seed_crawler.core.service;
 
 import com.seed_crawler.core.dto.MemberDto;
+import com.seed_crawler.core.dto.command.MemberSignupCommand;
 import com.seed_crawler.core.entity.Member;
+import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.repository.MemberRepository;
 import com.seed_crawler.core.validator.MemberValidator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.slf4j.MDC;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
@@ -30,6 +34,9 @@ class MemberServiceImplTest {
     @Mock
     PasswordEncoder encoder;
 
+    @Mock
+    UserContextManager userContextManager;
+
     @InjectMocks
     MemberServiceImpl service;
 
@@ -41,14 +48,27 @@ class MemberServiceImplTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    @AfterEach
+    void tearDown() {
+        MDC.clear();
+    }
+
     @Test
     @DisplayName("회원가입 성공 - 저장되는 Member 값 검증")
     void signup_success() {
+        // Given
         UUID id = UUID.randomUUID();
         String loginId = "testUser";
         String password = "Aa1!aaaa";
         String email = "test@example.com";
         String nickname = "닉";
+
+        MemberSignupCommand command = MemberSignupCommand.builder()
+                .loginId(loginId)
+                .password(password)
+                .nickname(nickname)
+                .email(email)
+                .build();
 
         when(memberRepository.existsByLoginId(loginId)).thenReturn(false);
         when(memberRepository.existsByEmail(email)).thenReturn(false);
@@ -64,12 +84,15 @@ class MemberServiceImplTest {
 
         when(memberRepository.save(any())).thenReturn(saved);
 
-        MemberDto.Result result = service.signup(loginId, password, nickname, email);
+        // When
+        MemberDto.Result result = service.signup(command);
 
+        // Then
         verify(validator).validateLoginId(loginId);
         verify(validator).validatePassword(password);
         verify(validator).validateEmail(email);
         verify(encoder).encode(password);
+        verify(userContextManager).setUserId(any());
 
         verify(memberRepository).save(memberCaptor.capture());
         Member captured = memberCaptor.getValue();
@@ -81,11 +104,18 @@ class MemberServiceImplTest {
     @Test
     @DisplayName("회원가입 실패 - 중복 아이디")
     void signup_duplicate_loginId() {
+        // Given
+        MemberSignupCommand command = MemberSignupCommand.builder()
+                .loginId("testUser")
+                .password("Aa1!aaaa")
+                .nickname("닉")
+                .email("test@example.com")
+                .build();
+
         when(memberRepository.existsByLoginId("testUser")).thenReturn(true);
 
-        assertThatThrownBy(() ->
-                service.signup("testUser", "Aa1!aaaa", "닉", "test@example.com")
-        )
+        // When & Then
+        assertThatThrownBy(() -> service.signup(command))
                 .isInstanceOf(AppException.class)
                 .hasMessage("이미 등록된 로그인 아이디입니다.");
     }
@@ -93,12 +123,19 @@ class MemberServiceImplTest {
     @Test
     @DisplayName("회원가입 실패 - 중복 이메일")
     void signup_duplicate_email() {
+        // Given
+        MemberSignupCommand command = MemberSignupCommand.builder()
+                .loginId("testUser")
+                .password("Aa1!aaaa")
+                .nickname("닉")
+                .email("test@example.com")
+                .build();
+
         when(memberRepository.existsByLoginId("testUser")).thenReturn(false);
         when(memberRepository.existsByEmail("test@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() ->
-                service.signup("testUser", "Aa1!aaaa", "닉", "test@example.com")
-        )
+        // When & Then
+        assertThatThrownBy(() -> service.signup(command))
                 .isInstanceOf(AppException.class)
                 .hasMessage("이미 등록된 이메일입니다.");
     }

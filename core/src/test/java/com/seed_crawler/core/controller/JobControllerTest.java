@@ -3,54 +3,55 @@ package com.seed_crawler.core.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.seed_crawler.core.dto.JobDto;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
+import com.seed_crawler.core.entity.enums.MemberRole;
 import com.seed_crawler.core.entity.enums.ScheduleType;
 import com.seed_crawler.core.global.auth.CustomUserDetails;
 import com.seed_crawler.core.global.exception.AppException;
-import com.seed_crawler.core.global.exception.GlobalExceptionHandler;
 import com.seed_crawler.core.global.response.ErrorCode;
 import com.seed_crawler.core.service.JobService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest
+@AutoConfigureMockMvc
 class JobControllerTest {
-    @InjectMocks
-    private JobController jobController;
 
-    @Mock
-    private JobService jobService;
-
+    @Autowired
     private MockMvc mvc;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private JobService jobService;
 
     private CustomUserDetails mockUser;
     private final UUID memberId = UUID.randomUUID();
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mvc = MockMvcBuilders.standaloneSetup(jobController)
-                .setControllerAdvice(new GlobalExceptionHandler()) // 프로젝트에 맞게
-                .build();
-
-        mockUser = new CustomUserDetails(memberId);
+        mockUser = new CustomUserDetails(memberId, MemberRole.USER, false, true);
     }
 
     @AfterEach
@@ -65,10 +66,7 @@ class JobControllerTest {
         UUID jobId = UUID.randomUUID();
         JobDto.SaveResult result = new JobDto.SaveResult(mockUser.getMemberId(), jobId, "test");
 
-        when(jobService.saveJob(
-                any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any()
-        )).thenReturn(result);
+        when(jobService.saveJob(any())).thenReturn(result);
 
         JobDto.SaveRequest req = new JobDto.SaveRequest(
                 "test", "desc", "https://test.com",
@@ -80,7 +78,8 @@ class JobControllerTest {
         mvc.perform(post("/api/job")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req))
-                        .principal(() -> mockUser.getUsername()))
+                        .with(user(mockUser)))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.memberId").value(memberId.toString()))
@@ -102,10 +101,7 @@ class JobControllerTest {
                 null
         );
 
-        when(jobService.saveJob(
-                any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any()
-        )).thenThrow(exception);
+        when(jobService.saveJob(any())).thenThrow(exception);
 
         JobDto.SaveRequest req = new JobDto.SaveRequest(
                 "test", "desc", "https://test.com",
@@ -118,7 +114,7 @@ class JobControllerTest {
         mvc.perform(post("/api/job")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req))
-                        .principal(() -> mockUser.getUsername()))
+                        .with(user(mockUser)))
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("MEMBER_NOT_FOUND"))
