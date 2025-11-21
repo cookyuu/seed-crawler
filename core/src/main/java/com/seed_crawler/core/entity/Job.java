@@ -94,4 +94,37 @@ public class Job extends BaseTimeEntity {
         this.status = JobStatus.STOP;
         this.member = member;
     }
+
+    public void updateInfo(String title, String description, String targetUrl, ScheduleType scheduleType,
+                           String cronExpression, Integer intervalSec, JobExecutionType jobExecutionType,
+                           Map<String, Object> headerParameters, Map<String, Object> queryParameters,
+                           Map<String, Object> bodyParameters, int retryLimit, int retryIntervalSec,
+                           int timeoutSec, String callbackUrl) {
+        this.title = title;
+        this.description = description;
+        this.targetUrl = targetUrl;
+        this.scheduleType = scheduleType;
+        this.cronExpression = cronExpression;
+        this.intervalSec = intervalSec;
+        this.jobExecutionType = jobExecutionType;
+        this.headerParameters = headerParameters;
+        this.queryParameters = queryParameters;
+        this.bodyParameters = bodyParameters;
+        this.retryLimit = retryLimit;
+        this.retryIntervalSec = retryIntervalSec;
+        this.timeoutSec = timeoutSec;
+        this.callbackUrl = callbackUrl;
+    }
+
+    public void disable() {
+        this.enabled = false;
+    }
+
+    public void enable() {
+        this.enabled = true;
+    }
+
+    public boolean isOwnedBy(UUID memberId) {
+        return this.member.getId().equals(memberId);
+    }
 }

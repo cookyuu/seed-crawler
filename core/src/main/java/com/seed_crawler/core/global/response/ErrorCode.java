@@ -20,7 +20,11 @@ public enum ErrorCode {
     // Member
     INVALID_PASSWORD("INVALID_PASSWORD", HttpStatus.UNAUTHORIZED, "패스워드 불일치 오류"),
     AUTH_LOCKED("AUTH_LOCK", HttpStatus.FORBIDDEN, "계정 잠김 오류"),
-    MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없음")
+    MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없음"),
+
+    // Job
+    JOB_NOT_FOUND("JOB_NOT_FOUND", HttpStatus.NOT_FOUND, "Job을 찾을 수 없음"),
+    FORBIDDEN("FORBIDDEN", HttpStatus.FORBIDDEN, "권한이 없음")
     ;
 
 
