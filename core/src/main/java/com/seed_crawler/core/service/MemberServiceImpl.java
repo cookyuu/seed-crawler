@@ -2,6 +2,8 @@ package com.seed_crawler.core.service;
 
 import com.seed_crawler.core.dto.MemberDto;
 import com.seed_crawler.core.dto.command.MemberSignupCommand;
+import com.seed_crawler.core.dto.command.MemberUpdateCommand;
+import com.seed_crawler.core.dto.command.MemberWithdrawCommand;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
@@ -49,5 +51,51 @@ public class MemberServiceImpl implements MemberService {
         );
         userContextManager.setUserId(member.getId());
         return new MemberDto.Result(member.getId(), member.getLoginId(), member.getNickname(), member.getEmail());
+    }
+
+    @Override
+    @LogEvent("member_update")
+    @Transactional
+    public MemberDto.UpdateResult updateMember(MemberUpdateCommand command) {
+        Member member = memberRepository.findById(command.getMemberId())
+                .orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다", "member.update.error", null));
+
+        if (command.getEmail() != null && !command.getEmail().equals(member.getEmail())) {
+            memberValidator.validateEmail(command.getEmail());
+            if (memberRepository.existsByEmail(command.getEmail())) {
+                throw new AppException(ErrorCode.DUPLICATE_REQUEST_EXCEPTION, "이미 등록된 이메일입니다.", "member.update.error", null);
+            }
+        }
+
+        if (command.getNewPassword() != null && !command.getNewPassword().isEmpty()) {
+            if (!passwordEncoder.matches(command.getCurrentPassword(), member.getPassword())) {
+                throw new AppException(ErrorCode.INVALID_PASSWORD, "현재 비밀번호가 일치하지 않습니다", "member.update.error", null);
+            }
+            memberValidator.validatePassword(command.getNewPassword());
+            member.updatePassword(passwordEncoder.encode(command.getNewPassword()));
+        }
+
+        member.updateInfo(
+                command.getNickname() != null ? command.getNickname() : member.getNickname(),
+                command.getEmail() != null ? command.getEmail() : member.getEmail()
+        );
+
+        return new MemberDto.UpdateResult(member.getId(), member.getNickname(), member.getEmail());
+    }
+
+    @Override
+    @LogEvent("member_withdraw")
+    @Transactional
+    public MemberDto.WithdrawResult withdraw(MemberWithdrawCommand command) {
+        Member member = memberRepository.findById(command.getMemberId())
+                .orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다", "member.withdraw.error", null));
+
+        if (!passwordEncoder.matches(command.getPassword(), member.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_PASSWORD, "비밀번호가 일치하지 않습니다", "member.withdraw.error", null);
+        }
+
+        member.withdraw();
+
+        return new MemberDto.WithdrawResult(member.getId());
     }
 }

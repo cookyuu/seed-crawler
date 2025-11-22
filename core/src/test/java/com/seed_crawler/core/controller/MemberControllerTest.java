@@ -2,6 +2,8 @@ package com.seed_crawler.core.controller;
 
 import com.seed_crawler.core.dto.MemberDto;
 import com.seed_crawler.core.dto.command.MemberSignupCommand;
+import com.seed_crawler.core.dto.command.MemberUpdateCommand;
+import com.seed_crawler.core.dto.command.MemberWithdrawCommand;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
@@ -16,6 +18,7 @@ import org.mockito.*;
 import org.slf4j.MDC;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -139,5 +142,164 @@ class MemberControllerTest {
         assertThatThrownBy(() -> service.signup(command))
                 .isInstanceOf(AppException.class)
                 .hasMessage("이미 등록된 이메일입니다.");
+    }
+
+    @Test
+    @DisplayName("회원정보 수정 성공 - 닉네임, 이메일 변경")
+    void updateMember_success() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        String newNickname = "새닉네임";
+        String newEmail = "new@example.com";
+
+        Member existingMember = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("ENCODED")
+                .nickname("기존닉네임")
+                .email("old@example.com")
+                .build();
+
+        MemberUpdateCommand command = MemberUpdateCommand.builder()
+                .memberId(memberId)
+                .nickname(newNickname)
+                .email(newEmail)
+                .build();
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(existingMember));
+        when(memberRepository.existsByEmail(newEmail)).thenReturn(false);
+
+        // When
+        MemberDto.UpdateResult result = service.updateMember(command);
+
+        // Then
+        assertThat(result.getMemberId()).isEqualTo(memberId);
+        assertThat(result.getNickname()).isEqualTo(newNickname);
+        assertThat(result.getEmail()).isEqualTo(newEmail);
+    }
+
+    @Test
+    @DisplayName("회원정보 수정 성공 - 비밀번호 변경")
+    void updateMember_password_success() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        String currentPassword = "OldPass1!";
+        String newPassword = "NewPass1!";
+
+        Member existingMember = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("ENCODED_OLD")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
+        MemberUpdateCommand command = MemberUpdateCommand.builder()
+                .memberId(memberId)
+                .nickname("닉네임")
+                .email("test@example.com")
+                .currentPassword(currentPassword)
+                .newPassword(newPassword)
+                .build();
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(existingMember));
+        when(encoder.matches(currentPassword, "ENCODED_OLD")).thenReturn(true);
+        when(encoder.encode(newPassword)).thenReturn("ENCODED_NEW");
+
+        // When
+        MemberDto.UpdateResult result = service.updateMember(command);
+
+        // Then
+        verify(validator).validatePassword(newPassword);
+        verify(encoder).encode(newPassword);
+        assertThat(result.getMemberId()).isEqualTo(memberId);
+    }
+
+    @Test
+    @DisplayName("회원정보 수정 실패 - 현재 비밀번호 불일치")
+    void updateMember_wrong_password() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+
+        Member existingMember = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("ENCODED_OLD")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
+        MemberUpdateCommand command = MemberUpdateCommand.builder()
+                .memberId(memberId)
+                .currentPassword("wrongPassword")
+                .newPassword("NewPass1!")
+                .build();
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(existingMember));
+        when(encoder.matches("wrongPassword", "ENCODED_OLD")).thenReturn(false);
+
+        // When & Then
+        assertThatThrownBy(() -> service.updateMember(command))
+                .isInstanceOf(AppException.class)
+                .hasMessage("현재 비밀번호가 일치하지 않습니다");
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 성공")
+    void withdraw_success() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        String password = "Pass1!";
+
+        Member existingMember = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("ENCODED")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
+        MemberWithdrawCommand command = MemberWithdrawCommand.builder()
+                .memberId(memberId)
+                .password(password)
+                .build();
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(existingMember));
+        when(encoder.matches(password, "ENCODED")).thenReturn(true);
+
+        // When
+        MemberDto.WithdrawResult result = service.withdraw(command);
+
+        // Then
+        assertThat(result.getMemberId()).isEqualTo(memberId);
+        assertThat(existingMember.isActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 실패 - 비밀번호 불일치")
+    void withdraw_wrong_password() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+
+        Member existingMember = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("ENCODED")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
+        MemberWithdrawCommand command = MemberWithdrawCommand.builder()
+                .memberId(memberId)
+                .password("wrongPassword")
+                .build();
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(existingMember));
+        when(encoder.matches("wrongPassword", "ENCODED")).thenReturn(false);
+
+        // When & Then
+        assertThatThrownBy(() -> service.withdraw(command))
+                .isInstanceOf(AppException.class)
+                .hasMessage("비밀번호가 일치하지 않습니다");
     }
 }

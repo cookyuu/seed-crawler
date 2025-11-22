@@ -36,4 +36,53 @@ public class MemberDto {
         private String nickname;
         private String email;
     }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateRequest {
+        private String nickname;
+        private String email;
+        private String currentPassword;
+        private String newPassword;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateResult {
+        private UUID memberId;
+        private String nickname;
+        private String email;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateResponse {
+        private UUID memberId;
+        private String nickname;
+        private String email;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WithdrawRequest {
+        private String password;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WithdrawResult {
+        private UUID memberId;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WithdrawResponse {
+        private UUID memberId;
+    }
 }

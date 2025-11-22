@@ -2,16 +2,17 @@ package com.seed_crawler.core.controller;
 
 import com.seed_crawler.core.dto.MemberDto;
 import com.seed_crawler.core.dto.command.MemberSignupCommand;
+import com.seed_crawler.core.dto.command.MemberUpdateCommand;
+import com.seed_crawler.core.dto.command.MemberWithdrawCommand;
+import com.seed_crawler.core.global.auth.CustomUserDetails;
 import com.seed_crawler.core.global.response.ApiResponse;
 import com.seed_crawler.core.global.response.ApiResponseFactory;
 import com.seed_crawler.core.service.MemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,6 +42,63 @@ public class MemberController {
                 payload,
                 "회원가입이 완료되었습니다.",
                 "member.signup.success",
+                httpReq
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<MemberDto.UpdateResponse>> updateMember(
+            @RequestBody MemberDto.UpdateRequest req,
+            @AuthenticationPrincipal CustomUserDetails user,
+            HttpServletRequest httpReq) {
+
+        MemberUpdateCommand command = MemberUpdateCommand.builder()
+                .memberId(user.getMemberId())
+                .nickname(req.getNickname())
+                .email(req.getEmail())
+                .currentPassword(req.getCurrentPassword())
+                .newPassword(req.getNewPassword())
+                .build();
+
+        MemberDto.UpdateResult result = memberService.updateMember(command);
+
+        MemberDto.UpdateResponse payload = new MemberDto.UpdateResponse(
+                result.getMemberId(),
+                result.getNickname(),
+                result.getEmail()
+        );
+
+        var body = ApiResponseFactory.ok(
+                payload,
+                "회원정보가 수정되었습니다.",
+                "member.update.success",
+                httpReq
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<MemberDto.WithdrawResponse>> withdraw(
+            @RequestBody MemberDto.WithdrawRequest req,
+            @AuthenticationPrincipal CustomUserDetails user,
+            HttpServletRequest httpReq) {
+
+        MemberWithdrawCommand command = MemberWithdrawCommand.builder()
+                .memberId(user.getMemberId())
+                .password(req.getPassword())
+                .build();
+
+        MemberDto.WithdrawResult result = memberService.withdraw(command);
+
+        MemberDto.WithdrawResponse payload = new MemberDto.WithdrawResponse(result.getMemberId());
+
+        var body = ApiResponseFactory.ok(
+                payload,
+                "회원탈퇴가 완료되었습니다.",
+                "member.withdraw.success",
                 httpReq
         );
 

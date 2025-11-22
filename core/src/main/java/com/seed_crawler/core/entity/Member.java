@@ -68,4 +68,17 @@ public class Member extends BaseTimeEntity{
     public void resetPasswordFailCount() {
         this.pwFailCnt = 0;
     }
+
+    public void updateInfo(String nickname, String email) {
+        this.nickname = nickname;
+        this.email = email;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void withdraw() {
+        this.active = false;
+    }
 }
