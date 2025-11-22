@@ -11,6 +11,7 @@ import com.seed_crawler.core.entity.enums.ScheduleType;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.global.response.ErrorCode;
+import com.seed_crawler.core.repository.JobInfoHistoryRepository;
 import com.seed_crawler.core.repository.JobRepository;
 import com.seed_crawler.core.repository.MemberRepository;
 import com.seed_crawler.core.validator.JobValidator;
@@ -41,6 +42,8 @@ class JobServiceImplTest {
     MemberRepository memberRepository;
     @Mock
     JobRepository jobRepository;
+    @Mock
+    JobInfoHistoryRepository jobInfoHistoryRepository;
     @Mock
     JobValidator jobValidator;
     @Mock

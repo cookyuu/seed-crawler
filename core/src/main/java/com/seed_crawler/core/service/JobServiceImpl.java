@@ -8,11 +8,13 @@ import com.seed_crawler.core.dto.command.JobDeleteCommand;
 import com.seed_crawler.core.dto.command.JobStatusCommand;
 import com.seed_crawler.core.dto.command.JobUpdateCommand;
 import com.seed_crawler.core.entity.Job;
+import com.seed_crawler.core.entity.JobInfoHistory;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
 import com.seed_crawler.core.global.log.LogEvent;
 import com.seed_crawler.core.global.response.ErrorCode;
+import com.seed_crawler.core.repository.JobInfoHistoryRepository;
 import com.seed_crawler.core.repository.JobRepository;
 import com.seed_crawler.core.repository.MemberRepository;
 import com.seed_crawler.core.validator.JobValidator;
@@ -20,10 +22,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
+    private final JobInfoHistoryRepository jobInfoHistoryRepository;
     private final MemberRepository memberRepository;
     private final JobValidator jobValidator;
     private final ScheduleConverter scheduleConverter;
@@ -86,11 +94,18 @@ public class JobServiceImpl implements JobService {
             throw new AppException(ErrorCode.FORBIDDEN, "해당 Job에 대한 권한이 없습니다", "job.update.error", null);
         }
 
+        Member modifier = memberRepository.findById(command.getMemberId())
+                .orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다", "job.update.error", null));
+
         jobValidator.validateUrl(command.getTargetUrl());
         jobValidator.validateSchedule(command.getScheduleType(), command.getSchedule());
         if (command.getCallbackUrl() != null) {
             jobValidator.validateUrl(command.getCallbackUrl());
         }
+
+        // 변경 전 데이터 저장
+        Map<String, Object> beforeData = captureJobData(job);
+        List<String> changedFields = new ArrayList<>();
 
         ScheduleConverter.ParsedSchedule parsedSchedule = scheduleConverter.convert(command.getScheduleType(), command.getSchedule());
 
@@ -103,6 +118,19 @@ public class JobServiceImpl implements JobService {
         int timeoutSec = (command.getTimeoutSec() == null || command.getTimeoutSec() == 0)
                 ? appProperties.getJob().getDefaults().getTimeoutSec()
                 : command.getTimeoutSec();
+
+        // 변경 필드 감지
+        if (!job.getTitle().equals(command.getTitle())) changedFields.add("title");
+        if (!nullSafeEquals(job.getDescription(), command.getDescription())) changedFields.add("description");
+        if (!job.getTargetUrl().equals(command.getTargetUrl())) changedFields.add("targetUrl");
+        if (job.getScheduleType() != command.getScheduleType()) changedFields.add("scheduleType");
+        if (!nullSafeEquals(job.getCronExpression(), parsedSchedule.getCronExpression())) changedFields.add("cronExpression");
+        if (!nullSafeEquals(job.getIntervalSec(), parsedSchedule.getIntervalSec())) changedFields.add("intervalSec");
+        if (job.getJobExecutionType() != command.getJobExecutionType()) changedFields.add("jobExecutionType");
+        if (job.getRetryLimit() != retryLimit) changedFields.add("retryLimit");
+        if (job.getRetryIntervalSec() != retryIntervalSec) changedFields.add("retryIntervalSec");
+        if (job.getTimeoutSec() != timeoutSec) changedFields.add("timeoutSec");
+        if (!nullSafeEquals(job.getCallbackUrl(), command.getCallbackUrl())) changedFields.add("callbackUrl");
 
         job.updateInfo(
                 command.getTitle(),
@@ -121,7 +149,36 @@ public class JobServiceImpl implements JobService {
                 command.getCallbackUrl()
         );
 
+        // 변경 이력 저장
+        if (!changedFields.isEmpty()) {
+            Map<String, Object> afterData = captureJobData(job);
+            String changeSummary = String.join(", ", changedFields) + " 변경";
+            jobInfoHistoryRepository.save(JobInfoHistory.create(job, modifier, beforeData, afterData, changeSummary));
+        }
+
         return new JobDto.UpdateResult(job.getId(), job.getTitle());
+    }
+
+    private Map<String, Object> captureJobData(Job job) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", job.getTitle());
+        data.put("description", job.getDescription());
+        data.put("targetUrl", job.getTargetUrl());
+        data.put("scheduleType", job.getScheduleType() != null ? job.getScheduleType().name() : null);
+        data.put("cronExpression", job.getCronExpression());
+        data.put("intervalSec", job.getIntervalSec());
+        data.put("jobExecutionType", job.getJobExecutionType() != null ? job.getJobExecutionType().name() : null);
+        data.put("retryLimit", job.getRetryLimit());
+        data.put("retryIntervalSec", job.getRetryIntervalSec());
+        data.put("timeoutSec", job.getTimeoutSec());
+        data.put("callbackUrl", job.getCallbackUrl());
+        return data;
+    }
+
+    private boolean nullSafeEquals(Object a, Object b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
     }
 
     @Override
