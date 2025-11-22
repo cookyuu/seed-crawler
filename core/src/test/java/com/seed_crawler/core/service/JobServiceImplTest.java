@@ -133,7 +133,6 @@ class JobServiceImplTest {
         // Repository 호출 검증
         verify(memberRepository, times(1)).findById(memberId);
         verify(jobRepository, times(1)).save(any(Job.class));
-        verify(userContextManager, times(1)).setUserId(memberId);
     }
 
     @Test

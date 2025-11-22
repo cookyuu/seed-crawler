@@ -7,6 +7,7 @@ import com.seed_crawler.core.dto.command.MemberWithdrawCommand;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
+import com.seed_crawler.core.repository.MemberInfoHistoryRepository;
 import com.seed_crawler.core.repository.MemberRepository;
 import com.seed_crawler.core.service.MemberServiceImpl;
 import com.seed_crawler.core.validator.MemberValidator;
@@ -31,6 +32,9 @@ class MemberControllerTest {
 
     @Mock
     MemberRepository memberRepository;
+
+    @Mock
+    MemberInfoHistoryRepository memberInfoHistoryRepository;
 
     @Mock
     MemberValidator validator;

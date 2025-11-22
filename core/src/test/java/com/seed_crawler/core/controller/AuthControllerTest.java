@@ -22,8 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -72,7 +71,7 @@ class AuthControllerTest {
         AuthDto.TokenResponse tokenResponse = new AuthDto.TokenResponse(accessToken, refreshToken);
         AuthDto.LoginResult result = new AuthDto.LoginResult(memberId, loginId, tokenResponse);
 
-        when(authService.login(loginId, password)).thenReturn(result);
+        when(authService.login(eq(loginId), eq(password), any(), any())).thenReturn(result);
         when(jwtTokenProvider.getRefreshTokenExpirationMs()).thenReturn(1209600000L); // 14 days
 
         AuthDto.LoginRequest req = new AuthDto.LoginRequest(loginId, password);
@@ -106,7 +105,7 @@ class AuthControllerTest {
                 null
         );
 
-        when(authService.login(loginId, password)).thenThrow(exception);
+        when(authService.login(eq(loginId), eq(password), any(), any())).thenThrow(exception);
 
         AuthDto.LoginRequest req = new AuthDto.LoginRequest(loginId, password);
 
@@ -135,7 +134,7 @@ class AuthControllerTest {
                 null
         );
 
-        when(authService.login(loginId, password)).thenThrow(exception);
+        when(authService.login(eq(loginId), eq(password), any(), any())).thenThrow(exception);
 
         AuthDto.LoginRequest req = new AuthDto.LoginRequest(loginId, password);
 
@@ -171,7 +170,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.error").isEmpty())
                 .andExpect(header().exists("Set-Cookie"));
 
-        verify(authService).logout(eq(memberId), anyString());
+        verify(authService).logout(eq(memberId), any(), any(), any());
     }
 
     @Test

@@ -13,7 +13,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class MemberActiveHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -39,4 +39,26 @@ public class MemberActiveHistory {
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime occurredAt = LocalDateTime.now();
+
+    public static MemberActiveHistory createLoginHistory(Member member, String ipAddress, String userAgent, boolean success) {
+        MemberActiveHistory history = new MemberActiveHistory();
+        history.member = member;
+        history.activityType = success ? MemberActivityType.LOGIN : MemberActivityType.LOGIN_FAIL;
+        history.ipAddress = ipAddress;
+        history.userAgent = userAgent;
+        history.success = success;
+        history.occurredAt = LocalDateTime.now();
+        return history;
+    }
+
+    public static MemberActiveHistory createLogoutHistory(Member member, String ipAddress, String userAgent) {
+        MemberActiveHistory history = new MemberActiveHistory();
+        history.member = member;
+        history.activityType = MemberActivityType.LOGOUT;
+        history.ipAddress = ipAddress;
+        history.userAgent = userAgent;
+        history.success = true;
+        history.occurredAt = LocalDateTime.now();
+        return history;
+    }
 }

@@ -29,7 +29,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthDto.LoginResponse>> login(@RequestBody AuthDto.LoginRequest req, HttpServletRequest httpReq, HttpServletResponse httpRes) {
         long refreshTtlMillis = jwtTokenProvider.getRefreshTokenExpirationMs();
-        AuthDto.LoginResult result = authService.login(req.getLoginId(), req.getPassword());
+        String ipAddress = getClientIp(httpReq);
+        String userAgent = httpReq.getHeader("User-Agent");
+
+        AuthDto.LoginResult result = authService.login(req.getLoginId(), req.getPassword(), ipAddress, userAgent);
         cookieUtils.setCookieHttpOnly(httpRes, "refreshToken", result.getToken().getRefreshToken(), (int)(refreshTtlMillis / 1000));
         AuthDto.LoginResponse payload = new AuthDto.LoginResponse(
                 result.getLoginId(),
@@ -50,7 +53,10 @@ public class AuthController {
             HttpServletResponse httpRes) {
 
         String accessToken = jwtTokenProvider.resolveToken(httpReq);
-        authService.logout(user.getMemberId(), accessToken);
+        String ipAddress = getClientIp(httpReq);
+        String userAgent = httpReq.getHeader("User-Agent");
+
+        authService.logout(user.getMemberId(), accessToken, ipAddress, userAgent);
 
         // Refresh Token 쿠키 삭제
         cookieUtils.deleteCookie(httpRes, "refreshToken");
@@ -62,5 +68,17 @@ public class AuthController {
                 httpReq
         );
         return ResponseEntity.ok(body);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        return request.getRemoteAddr();
     }
 }

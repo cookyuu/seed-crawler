@@ -2,10 +2,12 @@ package com.seed_crawler.core.service;
 
 import com.seed_crawler.core.dto.AuthDto;
 import com.seed_crawler.core.entity.Member;
+import com.seed_crawler.core.entity.MemberActiveHistory;
 import com.seed_crawler.core.entity.enums.MemberRole;
 import com.seed_crawler.core.global.auth.JwtTokenProvider;
 import com.seed_crawler.core.global.context.UserContextManager;
 import com.seed_crawler.core.global.exception.AppException;
+import com.seed_crawler.core.repository.MemberActiveHistoryRepository;
 import com.seed_crawler.core.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,9 @@ class AuthServiceImplTest {
     MemberRepository memberRepository;
 
     @Mock
+    MemberActiveHistoryRepository memberActiveHistoryRepository;
+
+    @Mock
     TokenService tokenService;
 
     @Mock
@@ -46,6 +51,9 @@ class AuthServiceImplTest {
 
     @InjectMocks
     AuthServiceImpl authService;
+
+    private static final String TEST_IP = "127.0.0.1";
+    private static final String TEST_USER_AGENT = "Mozilla/5.0";
 
     @BeforeEach
     void setUp() {
@@ -82,13 +90,14 @@ class AuthServiceImplTest {
         when(jwtTokenProvider.getRefreshTokenExpirationMs()).thenReturn(1209600000L);
 
         // When
-        AuthDto.LoginResult result = authService.login(loginId, password);
+        AuthDto.LoginResult result = authService.login(loginId, password, TEST_IP, TEST_USER_AGENT);
 
         // Then
         assertThat(result.getMemberId()).isEqualTo(memberId);
         assertThat(result.getLoginId()).isEqualTo(loginId);
         assertThat(result.getToken().getAccessToken()).isEqualTo("accessToken");
         verify(tokenService).storeRefreshToken(eq(memberId), eq("refreshToken"), anyLong());
+        verify(memberActiveHistoryRepository).save(any(MemberActiveHistory.class));
     }
 
     @Test
@@ -110,9 +119,10 @@ class AuthServiceImplTest {
         when(passwordEncoder.matches(password, "encodedPassword")).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> authService.login(loginId, password))
+        assertThatThrownBy(() -> authService.login(loginId, password, TEST_IP, TEST_USER_AGENT))
                 .isInstanceOf(AppException.class)
                 .hasMessage("비밀번호가 일치하지 않습니다.");
+        verify(memberActiveHistoryRepository).save(any(MemberActiveHistory.class));
     }
 
     @Test
@@ -138,9 +148,10 @@ class AuthServiceImplTest {
         when(memberRepository.findByLoginId(loginId)).thenReturn(Optional.of(member));
 
         // When & Then
-        assertThatThrownBy(() -> authService.login(loginId, password))
+        assertThatThrownBy(() -> authService.login(loginId, password, TEST_IP, TEST_USER_AGENT))
                 .isInstanceOf(AppException.class)
                 .hasMessage("사용자 계정이 잠김 상태입니다.");
+        verify(memberActiveHistoryRepository).save(any(MemberActiveHistory.class));
     }
 
     @Test
@@ -151,15 +162,25 @@ class AuthServiceImplTest {
         String accessToken = "validAccessToken";
         long remainingMs = 600000L; // 10분
 
+        Member member = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("encodedPassword")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
         when(jwtTokenProvider.getRemainingExpirationMs(accessToken)).thenReturn(remainingMs);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         // When
-        authService.logout(memberId, accessToken);
+        authService.logout(memberId, accessToken, TEST_IP, TEST_USER_AGENT);
 
         // Then
         verify(userContextManager).setUserId(memberId);
         verify(tokenService).invalidateRefreshToken(memberId);
         verify(tokenService).addToBlacklist(accessToken, remainingMs);
+        verify(memberActiveHistoryRepository).save(any(MemberActiveHistory.class));
     }
 
     @Test
@@ -169,14 +190,24 @@ class AuthServiceImplTest {
         UUID memberId = UUID.randomUUID();
         String accessToken = "expiredAccessToken";
 
+        Member member = Member.builder()
+                .id(memberId)
+                .loginId("testUser")
+                .password("encodedPassword")
+                .nickname("닉네임")
+                .email("test@example.com")
+                .build();
+
         when(jwtTokenProvider.getRemainingExpirationMs(accessToken)).thenReturn(0L);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
         // When
-        authService.logout(memberId, accessToken);
+        authService.logout(memberId, accessToken, TEST_IP, TEST_USER_AGENT);
 
         // Then
         verify(userContextManager).setUserId(memberId);
         verify(tokenService).invalidateRefreshToken(memberId);
         verify(tokenService, never()).addToBlacklist(anyString(), anyLong());
+        verify(memberActiveHistoryRepository).save(any(MemberActiveHistory.class));
     }
 }
