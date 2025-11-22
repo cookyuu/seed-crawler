@@ -82,4 +82,15 @@ public class JwtTokenProvider {
             return false;
         }
     }
+
+    public long getRemainingExpirationMs(String token) {
+        try {
+            Date expiration = Jwts.parserBuilder().setSigningKey(key).build()
+                    .parseClaimsJws(token).getBody().getExpiration();
+            long remaining = expiration.getTime() - System.currentTimeMillis();
+            return Math.max(remaining, 0);
+        } catch (JwtException | IllegalArgumentException e) {
+            return 0;
+        }
+    }
 }

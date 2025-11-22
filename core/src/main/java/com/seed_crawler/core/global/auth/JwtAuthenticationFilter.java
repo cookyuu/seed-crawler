@@ -3,6 +3,7 @@ package com.seed_crawler.core.global.auth;
 import com.seed_crawler.core.entity.Member;
 import com.seed_crawler.core.entity.enums.MemberRole;
 import com.seed_crawler.core.repository.MemberRepository;
+import com.seed_crawler.core.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,11 +22,12 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberRepository memberRepository;
+    private final TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpReq, HttpServletResponse httpRes, FilterChain filterChain) throws ServletException, IOException {
         String accessToken = jwtTokenProvider.resolveToken(httpReq);
-        if (accessToken != null && jwtTokenProvider.validateToken(accessToken)) {
+        if (accessToken != null && jwtTokenProvider.validateToken(accessToken) && !tokenService.isBlacklisted(accessToken)) {
             UUID memberId = jwtTokenProvider.getMemberId(accessToken);
             MemberRole role = jwtTokenProvider.getRole(accessToken);
 
@@ -41,12 +43,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         member.isActive()
                 );
             } else {
-                // Member가 DB에 없어도 일단 인증은 설정 (Service에서 검증)
                 userDetails = new CustomUserDetails(
                         memberId,
                         role,
-                        false,  // accountLock: false (기본값)
-                        true    // active: true (기본값)
+                        false,
+                        true
                 );
             }
 

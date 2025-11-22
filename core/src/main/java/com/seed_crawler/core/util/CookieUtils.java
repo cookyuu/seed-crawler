@@ -25,4 +25,16 @@ public class CookieUtils {
 
         httpRes.addHeader("Set-Cookie", cookie.toString());
     }
+
+    public void deleteCookie(HttpServletResponse httpRes, String key) {
+        ResponseCookie cookie = ResponseCookie.from(key, "")
+                .httpOnly(true)
+                .secure(appProperties.getCookie().isSecure())
+                .path(appProperties.getCookie().getPath())
+                .maxAge(0)
+                .sameSite(appProperties.getCookie().getSameSite())
+                .build();
+
+        httpRes.addHeader("Set-Cookie", cookie.toString());
+    }
 }

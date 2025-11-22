@@ -13,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -43,4 +45,16 @@ public class AuthServiceImpl implements AuthService {
         return new AuthDto.LoginResult(member.getId(), member.getLoginId(), tokenResponse);
     }
 
+    @Override
+    @LogEvent("logout_attempt")
+    public void logout(UUID memberId, String accessToken) {
+        userContextManager.setUserId(memberId);
+
+        tokenService.invalidateRefreshToken(memberId);
+
+        long remainingMs = jwtTokenProvider.getRemainingExpirationMs(accessToken);
+        if (remainingMs > 0) {
+            tokenService.addToBlacklist(accessToken, remainingMs);
+        }
+    }
 }
