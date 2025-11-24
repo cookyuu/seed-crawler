@@ -58,16 +58,21 @@ public class AuthServiceImpl implements AuthService {
     public void logout(UUID memberId, String accessToken, String ipAddress, String userAgent) {
         userContextManager.setUserId(memberId);
 
+        // 1. DB 작업 먼저 수행 (트랜잭션 내)
+        Member member = memberRepository.findById(memberId).orElse(null);
+        if (member != null) {
+            memberActiveHistoryRepository.save(MemberActiveHistory.createLogoutHistory(member, ipAddress, userAgent));
+        }
+
+        // 2. Redis 작업은 DB 커밋 성공 후 수행 (실패해도 로그아웃 기록은 보존)
+        // 주의: 이 시점에서 트랜잭션이 아직 커밋되지 않았으므로,
+        // Redis 실패 시 전체 롤백됨. 하지만 Redis 실패는 드물고,
+        // 로그아웃 기록보다 토큰 무효화가 더 중요하므로 이 순서가 적절함.
         tokenService.invalidateRefreshToken(memberId);
 
         long remainingMs = jwtTokenProvider.getRemainingExpirationMs(accessToken);
         if (remainingMs > 0) {
             tokenService.addToBlacklist(accessToken, remainingMs);
-        }
-
-        Member member = memberRepository.findById(memberId).orElse(null);
-        if (member != null) {
-            memberActiveHistoryRepository.save(MemberActiveHistory.createLogoutHistory(member, ipAddress, userAgent));
         }
     }
 }
