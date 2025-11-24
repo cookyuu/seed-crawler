@@ -3,6 +3,7 @@ package com.seed_crawler.core.controller;
 import com.seed_crawler.core.dto.JobDto;
 import com.seed_crawler.core.dto.command.JobCreationCommand;
 import com.seed_crawler.core.dto.command.JobDeleteCommand;
+import com.seed_crawler.core.dto.command.JobOperationCommand;
 import com.seed_crawler.core.dto.command.JobStatusCommand;
 import com.seed_crawler.core.dto.command.JobUpdateCommand;
 import com.seed_crawler.core.global.auth.CustomUserDetails;
@@ -151,6 +152,36 @@ public class JobController {
                 payload,
                 message,
                 "job.status.success",
+                httpReq
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/{jobId}/operation")
+    public ResponseEntity<ApiResponse<JobDto.OperationResponse>> operateJob(
+            @PathVariable UUID jobId,
+            @AuthenticationPrincipal CustomUserDetails user,
+            HttpServletRequest httpReq) {
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(user.getMemberId())
+                .build();
+
+        JobDto.OperationResult result = jobService.operateJob(command);
+
+        JobDto.OperationResponse payload = JobDto.OperationResponse.builder()
+                .jobId(result.getJobId())
+                .title(result.getTitle())
+                .status(result.getStatus())
+                .message("크롤링 Job이 스케줄링되었습니다.")
+                .build();
+
+        var body = ApiResponseFactory.ok(
+                payload,
+                "크롤링 JOB 실행이 예약되었습니다.",
+                "job.operation.success",
                 httpReq
         );
 

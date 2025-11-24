@@ -127,4 +127,37 @@ public class Job extends BaseTimeEntity {
     public boolean isOwnedBy(UUID memberId) {
         return this.member.getId().equals(memberId);
     }
+
+    public void updateStatus(JobStatus status) {
+        this.status = status;
+    }
+
+    public void markAsRunning() {
+        this.status = JobStatus.RUNNING;
+        this.lastRunAt = LocalDateTime.now();
+    }
+
+    public void updateNextRunAt(LocalDateTime nextRunAt) {
+        this.nextRunAt = nextRunAt;
+    }
+
+    public void scheduleNextRun() {
+        this.status = JobStatus.SCHEDULED;
+        calculateNextRunAt();
+    }
+
+    public void calculateNextRunAt() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.scheduleType == ScheduleType.INTERVAL && this.intervalSec != null) {
+            this.nextRunAt = now.plusSeconds(this.intervalSec);
+        } else if (this.scheduleType == ScheduleType.CRON && this.cronExpression != null) {
+            this.nextRunAt = com.seed_crawler.core.util.CronUtils.getNextExecutionTime(this.cronExpression, now);
+        }
+    }
+
+    public void completeRun() {
+        this.lastRunAt = LocalDateTime.now();
+        calculateNextRunAt();
+        this.status = JobStatus.SCHEDULED;
+    }
 }

@@ -4,8 +4,10 @@ import com.seed_crawler.core.config.properties.ApplicationProperties;
 import com.seed_crawler.core.converter.ScheduleConverter;
 import com.seed_crawler.core.dto.JobDto;
 import com.seed_crawler.core.dto.command.JobCreationCommand;
+import com.seed_crawler.core.dto.command.JobOperationCommand;
 import com.seed_crawler.core.entity.Job;
 import com.seed_crawler.core.entity.Member;
+import com.seed_crawler.core.entity.enums.JobStatus;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
 import com.seed_crawler.core.entity.enums.ScheduleType;
 import com.seed_crawler.core.global.context.UserContextManager;
@@ -213,5 +215,149 @@ class JobServiceImplTest {
         verify(memberRepository).findById(memberId);
         verify(jobValidator).validateUrl("bad_url");
         verify(jobRepository, never()).save(any());
+    }
+
+    // ==================== operateJob 테스트 ====================
+
+    @Test
+    @DisplayName("성공: Job 실행 예약 성공 시 상태가 SCHEDULED로 변경됨")
+    void operateJob_success() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        Member member = new Member();
+        ReflectionTestUtils.setField(member, "id", memberId);
+
+        Job job = Job.builder()
+                .title("Test Job")
+                .targetUrl("https://test.com")
+                .scheduleType(ScheduleType.INTERVAL)
+                .intervalSec(300)
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .retryLimit(3)
+                .retryIntervalSec(60)
+                .timeoutSec(30)
+                .member(member)
+                .build();
+        ReflectionTestUtils.setField(job, "id", jobId);
+        ReflectionTestUtils.setField(job, "enabled", true);
+        ReflectionTestUtils.setField(job, "status", JobStatus.STOP);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(memberId)
+                .build();
+
+        // When
+        JobDto.OperationResult result = jobService.operateJob(command);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getJobId()).isEqualTo(jobId);
+        assertThat(result.getTitle()).isEqualTo("Test Job");
+        assertThat(result.getStatus()).isEqualTo(JobStatus.SCHEDULED.name());
+        assertThat(job.getStatus()).isEqualTo(JobStatus.SCHEDULED);
+        assertThat(job.getNextRunAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("실패: 존재하지 않는 Job 실행 요청 시 JOB_NOT_FOUND 예외 발생")
+    void operateJob_jobNotFound_fail() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.empty());
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(memberId)
+                .build();
+
+        // When & Then
+        AppException ex = catchThrowableOfType(() -> jobService.operateJob(command), AppException.class);
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOB_NOT_FOUND);
+        assertThat(ex.getMessage()).contains("Job을 찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("실패: 다른 사용자의 Job 실행 요청 시 FORBIDDEN 예외 발생")
+    void operateJob_forbidden_fail() {
+        // Given
+        UUID ownerId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        Member owner = new Member();
+        ReflectionTestUtils.setField(owner, "id", ownerId);
+
+        Job job = Job.builder()
+                .title("Test Job")
+                .targetUrl("https://test.com")
+                .scheduleType(ScheduleType.INTERVAL)
+                .intervalSec(300)
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .retryLimit(3)
+                .retryIntervalSec(60)
+                .timeoutSec(30)
+                .member(owner)
+                .build();
+        ReflectionTestUtils.setField(job, "id", jobId);
+        ReflectionTestUtils.setField(job, "enabled", true);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(requesterId)
+                .build();
+
+        // When & Then
+        AppException ex = catchThrowableOfType(() -> jobService.operateJob(command), AppException.class);
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+        assertThat(ex.getMessage()).contains("권한이 없습니다");
+    }
+
+    @Test
+    @DisplayName("실패: 비활성화된 Job 실행 요청 시 JOB_DISABLED 예외 발생")
+    void operateJob_disabled_fail() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        Member member = new Member();
+        ReflectionTestUtils.setField(member, "id", memberId);
+
+        Job job = Job.builder()
+                .title("Test Job")
+                .targetUrl("https://test.com")
+                .scheduleType(ScheduleType.INTERVAL)
+                .intervalSec(300)
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .retryLimit(3)
+                .retryIntervalSec(60)
+                .timeoutSec(30)
+                .member(member)
+                .build();
+        ReflectionTestUtils.setField(job, "id", jobId);
+        ReflectionTestUtils.setField(job, "enabled", false);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(memberId)
+                .build();
+
+        // When & Then
+        AppException ex = catchThrowableOfType(() -> jobService.operateJob(command), AppException.class);
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOB_DISABLED);
+        assertThat(ex.getMessage()).contains("비활성화된 Job은 실행할 수 없습니다");
     }
 }

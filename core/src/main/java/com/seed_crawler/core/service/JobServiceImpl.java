@@ -5,6 +5,7 @@ import com.seed_crawler.core.converter.ScheduleConverter;
 import com.seed_crawler.core.dto.JobDto;
 import com.seed_crawler.core.dto.command.JobCreationCommand;
 import com.seed_crawler.core.dto.command.JobDeleteCommand;
+import com.seed_crawler.core.dto.command.JobOperationCommand;
 import com.seed_crawler.core.dto.command.JobStatusCommand;
 import com.seed_crawler.core.dto.command.JobUpdateCommand;
 import com.seed_crawler.core.entity.Job;
@@ -215,5 +216,29 @@ public class JobServiceImpl implements JobService {
         }
 
         return new JobDto.StatusResult(job.getId(), job.isEnabled());
+    }
+
+    @Override
+    @LogEvent("job_operate")
+    @Transactional
+    public JobDto.OperationResult operateJob(JobOperationCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "Job을 찾을 수 없습니다", "job.operate.error", null));
+
+        if (!job.isOwnedBy(command.getMemberId())) {
+            throw new AppException(ErrorCode.FORBIDDEN, "해당 Job에 대한 권한이 없습니다", "job.operate.error", null);
+        }
+
+        if (!job.isEnabled()) {
+            throw new AppException(ErrorCode.JOB_DISABLED, "비활성화된 Job은 실행할 수 없습니다", "job.operate.error", null);
+        }
+
+        job.scheduleNextRun();
+
+        return JobDto.OperationResult.builder()
+                .jobId(job.getId())
+                .title(job.getTitle())
+                .status(job.getStatus().name())
+                .build();
     }
 }

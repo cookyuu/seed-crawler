@@ -130,4 +130,25 @@ public class JobDto {
         private UUID jobId;
         private boolean enabled;
     }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OperationResult {
+        private UUID jobId;
+        private String title;
+        private String status;
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OperationResponse {
+        private UUID jobId;
+        private String title;
+        private String status;
+        private String message;
+    }
 }

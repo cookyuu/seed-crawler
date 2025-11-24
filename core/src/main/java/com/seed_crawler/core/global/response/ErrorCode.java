@@ -24,6 +24,7 @@ public enum ErrorCode {
 
     // Job
     JOB_NOT_FOUND("JOB_NOT_FOUND", HttpStatus.NOT_FOUND, "Job을 찾을 수 없음"),
+    JOB_DISABLED("JOB_DISABLED", HttpStatus.BAD_REQUEST, "Job이 비활성화 상태"),
     FORBIDDEN("FORBIDDEN", HttpStatus.FORBIDDEN, "권한이 없음")
     ;
 
