@@ -241,4 +241,24 @@ public class JobServiceImpl implements JobService {
                 .status(job.getStatus().name())
                 .build();
     }
+
+    @Override
+    @LogEvent("job_stop")
+    @Transactional
+    public JobDto.OperationResult stopJob(JobOperationCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "Job을 찾을 수 없습니다", "job.stop.error", null));
+
+        if (!job.isOwnedBy(command.getMemberId())) {
+            throw new AppException(ErrorCode.FORBIDDEN, "해당 Job에 대한 권한이 없습니다", "job.stop.error", null);
+        }
+
+        job.stop();
+
+        return JobDto.OperationResult.builder()
+                .jobId(job.getId())
+                .title(job.getTitle())
+                .status(job.getStatus().name())
+                .build();
+    }
 }

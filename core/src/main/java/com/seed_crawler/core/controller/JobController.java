@@ -187,4 +187,34 @@ public class JobController {
 
         return ResponseEntity.ok(body);
     }
+
+    @DeleteMapping("/{jobId}/operation")
+    public ResponseEntity<ApiResponse<JobDto.OperationResponse>> stopJob(
+            @PathVariable UUID jobId,
+            @AuthenticationPrincipal CustomUserDetails user,
+            HttpServletRequest httpReq) {
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(user.getMemberId())
+                .build();
+
+        JobDto.OperationResult result = jobService.stopJob(command);
+
+        JobDto.OperationResponse payload = JobDto.OperationResponse.builder()
+                .jobId(result.getJobId())
+                .title(result.getTitle())
+                .status(result.getStatus())
+                .message("크롤링 Job이 중지되었습니다.")
+                .build();
+
+        var body = ApiResponseFactory.ok(
+                payload,
+                "크롤링 JOB 실행이 중지되었습니다.",
+                "job.operation.stop.success",
+                httpReq
+        );
+
+        return ResponseEntity.ok(body);
+    }
 }

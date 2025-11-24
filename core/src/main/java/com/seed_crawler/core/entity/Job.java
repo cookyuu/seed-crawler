@@ -160,4 +160,9 @@ public class Job extends BaseTimeEntity {
         calculateNextRunAt();
         this.status = JobStatus.SCHEDULED;
     }
+
+    public void stop() {
+        this.status = JobStatus.STOP;
+        this.nextRunAt = null;
+    }
 }

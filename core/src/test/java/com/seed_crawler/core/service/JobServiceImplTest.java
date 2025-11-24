@@ -360,4 +360,111 @@ class JobServiceImplTest {
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOB_DISABLED);
         assertThat(ex.getMessage()).contains("비활성화된 Job은 실행할 수 없습니다");
     }
+
+    // ==================== stopJob 테스트 ====================
+
+    @Test
+    @DisplayName("성공: Job 중지 성공 시 상태가 STOP으로 변경됨")
+    void stopJob_success() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        Member member = new Member();
+        ReflectionTestUtils.setField(member, "id", memberId);
+
+        Job job = Job.builder()
+                .title("Test Job")
+                .targetUrl("https://test.com")
+                .scheduleType(ScheduleType.INTERVAL)
+                .intervalSec(300)
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .retryLimit(3)
+                .retryIntervalSec(60)
+                .timeoutSec(30)
+                .member(member)
+                .build();
+        ReflectionTestUtils.setField(job, "id", jobId);
+        ReflectionTestUtils.setField(job, "enabled", true);
+        ReflectionTestUtils.setField(job, "status", JobStatus.SCHEDULED);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(memberId)
+                .build();
+
+        // When
+        JobDto.OperationResult result = jobService.stopJob(command);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getJobId()).isEqualTo(jobId);
+        assertThat(result.getTitle()).isEqualTo("Test Job");
+        assertThat(result.getStatus()).isEqualTo(JobStatus.STOP.name());
+        assertThat(job.getStatus()).isEqualTo(JobStatus.STOP);
+        assertThat(job.getNextRunAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("실패: 존재하지 않는 Job 중지 요청 시 JOB_NOT_FOUND 예외 발생")
+    void stopJob_jobNotFound_fail() {
+        // Given
+        UUID memberId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.empty());
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(memberId)
+                .build();
+
+        // When & Then
+        AppException ex = catchThrowableOfType(() -> jobService.stopJob(command), AppException.class);
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOB_NOT_FOUND);
+        assertThat(ex.getMessage()).contains("Job을 찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("실패: 다른 사용자의 Job 중지 요청 시 FORBIDDEN 예외 발생")
+    void stopJob_forbidden_fail() {
+        // Given
+        UUID ownerId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+
+        Member owner = new Member();
+        ReflectionTestUtils.setField(owner, "id", ownerId);
+
+        Job job = Job.builder()
+                .title("Test Job")
+                .targetUrl("https://test.com")
+                .scheduleType(ScheduleType.INTERVAL)
+                .intervalSec(300)
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .retryLimit(3)
+                .retryIntervalSec(60)
+                .timeoutSec(30)
+                .member(owner)
+                .build();
+        ReflectionTestUtils.setField(job, "id", jobId);
+        ReflectionTestUtils.setField(job, "enabled", true);
+        ReflectionTestUtils.setField(job, "status", JobStatus.SCHEDULED);
+
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+
+        JobOperationCommand command = JobOperationCommand.builder()
+                .jobId(jobId)
+                .memberId(requesterId)
+                .build();
+
+        // When & Then
+        AppException ex = catchThrowableOfType(() -> jobService.stopJob(command), AppException.class);
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+        assertThat(ex.getMessage()).contains("권한이 없습니다");
+    }
 }

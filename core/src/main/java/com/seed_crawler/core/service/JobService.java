@@ -13,4 +13,5 @@ public interface JobService {
     JobDto.DeleteResult deleteJob(JobDeleteCommand command);
     JobDto.StatusResult updateJobStatus(JobStatusCommand command);
     JobDto.OperationResult operateJob(JobOperationCommand command);
+    JobDto.OperationResult stopJob(JobOperationCommand command);
 }
