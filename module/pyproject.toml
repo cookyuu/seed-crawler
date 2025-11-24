@@ -1,13 +1,15 @@
 [project]
 name = "seed-crawler-module"
 version = "0.1.0"
-description = "Kafka event consumer and crawler module"
+description = "Kafka event consumer and crawler module with LLM extraction"
 requires-python = ">=3.11"
 dependencies = [
     "kafka-python-ng>=2.2.2",
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",
     "lxml>=5.0.0",
+    "selenium>=4.15.0",
+    "webdriver-manager>=4.0.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "pyyaml>=6.0.0",

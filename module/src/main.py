@@ -4,7 +4,7 @@ import sys
 
 from src.config import get_settings
 from src.consumer import CrawlRequestConsumer
-from src.crawler import WebCrawler
+from src.crawler import CrawlerFactory
 from src.model import JobCrawlRequestEvent
 from src.producer import CrawlResultProducer
 
@@ -20,13 +20,16 @@ class CrawlerApplication:
         self.settings = get_settings()
         self.consumer = CrawlRequestConsumer()
         self.producer = CrawlResultProducer()
-        self.crawler = WebCrawler()
         self.running = True
 
     def handle_event(self, event: JobCrawlRequestEvent) -> None:
-        logger.info(f"Processing crawl request - jobId: {event.job_id}, url: {event.target_url}")
+        logger.info(
+            f"Processing crawl request - jobId: {event.job_id}, "
+            f"type: {event.job_execution_type.value}, url: {event.target_url}"
+        )
 
-        result = self.crawler.crawl(event)
+        crawler = CrawlerFactory.get_crawler(event.job_execution_type)
+        result = crawler.crawl(event)
         self.producer.send(result)
 
         logger.info(f"Crawl completed - jobId: {event.job_id}, status: {result.status.value}")

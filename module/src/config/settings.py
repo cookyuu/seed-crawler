@@ -24,11 +24,30 @@ class CrawlerSettings(BaseSettings):
         env_prefix = "CRAWLER_"
 
 
+class OllamaSettings(BaseSettings):
+    base_url: str = "http://localhost:11434"
+    model: str = "llama3.2"
+    timeout_sec: int = 120
+
+    class Config:
+        env_prefix = "OLLAMA_"
+
+
+class SeleniumSettings(BaseSettings):
+    headless: bool = True
+    page_load_timeout: int = 30
+
+    class Config:
+        env_prefix = "SELENIUM_"
+
+
 class Settings(BaseSettings):
     app_name: str = "seed-crawler-module"
     debug: bool = False
     kafka: KafkaSettings = KafkaSettings()
     crawler: CrawlerSettings = CrawlerSettings()
+    ollama: OllamaSettings = OllamaSettings()
+    selenium: SeleniumSettings = SeleniumSettings()
 
     class Config:
         env_file = ".env"
