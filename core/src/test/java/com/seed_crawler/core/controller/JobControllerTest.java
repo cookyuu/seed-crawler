@@ -2,6 +2,7 @@ package com.seed_crawler.core.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.seed_crawler.core.dto.JobDto;
+import com.seed_crawler.core.entity.enums.HttpMethod;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
 import com.seed_crawler.core.entity.enums.MemberRole;
 import com.seed_crawler.core.entity.enums.ScheduleType;
@@ -17,7 +18,6 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,11 +68,22 @@ class JobControllerTest {
 
         when(jobService.saveJob(any())).thenReturn(result);
 
-        JobDto.SaveRequest req = new JobDto.SaveRequest(
-                "test", "desc", "https://test.com",
-                JobExecutionType.API_JSON, ScheduleType.CRON, "0/10 * * * * *",
-                Map.of(), Map.of(), Map.of(), 3, 10, 30, null
-        );
+        JobDto.SaveRequest req = JobDto.SaveRequest.builder()
+                .title("test")
+                .description("desc")
+                .targetUrl("https://test.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .httpMethod(HttpMethod.GET)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/10 * * * * *")
+                .prompt("Extract data as JSON")
+                .headerParameters(Map.of())
+                .queryParameters(Map.of())
+                .bodyParameters(Map.of())
+                .retryLimit(3)
+                .retryIntervalSec(10)
+                .timeoutSec(30)
+                .build();
 
         // When & Then
         mvc.perform(post("/api/job")
@@ -103,12 +114,22 @@ class JobControllerTest {
 
         when(jobService.saveJob(any())).thenThrow(exception);
 
-        JobDto.SaveRequest req = new JobDto.SaveRequest(
-                "test", "desc", "https://test.com",
-                JobExecutionType.API_JSON, ScheduleType.CRON, "0/10 * * * * *",
-                Map.of(), Map.of(), Map.of(),
-                3, 10, 30, null
-        );
+        JobDto.SaveRequest req = JobDto.SaveRequest.builder()
+                .title("test")
+                .description("desc")
+                .targetUrl("https://test.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .httpMethod(HttpMethod.GET)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/10 * * * * *")
+                .prompt("Extract data as JSON")
+                .headerParameters(Map.of())
+                .queryParameters(Map.of())
+                .bodyParameters(Map.of())
+                .retryLimit(3)
+                .retryIntervalSec(10)
+                .timeoutSec(30)
+                .build();
 
         // When & Then
         mvc.perform(post("/api/job")
@@ -132,11 +153,22 @@ class JobControllerTest {
 
         when(jobService.updateJob(any())).thenReturn(result);
 
-        JobDto.UpdateRequest req = new JobDto.UpdateRequest(
-                "updated test", "updated desc", "https://updated.com",
-                JobExecutionType.API_JSON, ScheduleType.CRON, "0/20 * * * * *",
-                Map.of(), Map.of(), Map.of(), 5, 20, 60, null
-        );
+        JobDto.UpdateRequest req = JobDto.UpdateRequest.builder()
+                .title("updated test")
+                .description("updated desc")
+                .targetUrl("https://updated.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .httpMethod(HttpMethod.GET)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/20 * * * * *")
+                .prompt("Extract updated data as JSON")
+                .headerParameters(Map.of())
+                .queryParameters(Map.of())
+                .bodyParameters(Map.of())
+                .retryLimit(5)
+                .retryIntervalSec(20)
+                .timeoutSec(60)
+                .build();
 
         // When & Then
         mvc.perform(put("/api/job/{jobId}", jobId)
@@ -167,11 +199,22 @@ class JobControllerTest {
 
         when(jobService.updateJob(any())).thenThrow(exception);
 
-        JobDto.UpdateRequest req = new JobDto.UpdateRequest(
-                "updated test", "updated desc", "https://updated.com",
-                JobExecutionType.API_JSON, ScheduleType.CRON, "0/20 * * * * *",
-                Map.of(), Map.of(), Map.of(), 5, 20, 60, null
-        );
+        JobDto.UpdateRequest req = JobDto.UpdateRequest.builder()
+                .title("updated test")
+                .description("updated desc")
+                .targetUrl("https://updated.com")
+                .jobExecutionType(JobExecutionType.API_JSON)
+                .httpMethod(HttpMethod.GET)
+                .scheduleType(ScheduleType.CRON)
+                .schedule("0/20 * * * * *")
+                .prompt("Extract updated data as JSON")
+                .headerParameters(Map.of())
+                .queryParameters(Map.of())
+                .bodyParameters(Map.of())
+                .retryLimit(5)
+                .retryIntervalSec(20)
+                .timeoutSec(60)
+                .build();
 
         // When & Then
         mvc.perform(put("/api/job/{jobId}", jobId)
