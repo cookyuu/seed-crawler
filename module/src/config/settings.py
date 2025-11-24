@@ -5,8 +5,9 @@ from pydantic_settings import BaseSettings
 
 class KafkaSettings(BaseSettings):
     bootstrap_servers: str = "localhost:9092"
-    group_id: str = "crawler-group"
-    topic: str = "crawl-events"
+    group_id: str = "seed-crawler-module-group"
+    request_topic: str = "job-crawl-request"
+    result_topic: str = "job-crawl-result"
     auto_offset_reset: str = "earliest"
 
     class Config:
@@ -14,8 +15,9 @@ class KafkaSettings(BaseSettings):
 
 
 class CrawlerSettings(BaseSettings):
-    request_timeout: int = 30
-    max_retries: int = 3
+    default_timeout_sec: int = 30
+    default_retry_limit: int = 3
+    default_retry_interval_sec: int = 60
     user_agent: str = "SeedCrawler/1.0"
 
     class Config:

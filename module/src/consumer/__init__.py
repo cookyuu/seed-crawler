@@ -1,3 +1,3 @@
-from .kafka_consumer import KafkaEventConsumer
+from .kafka_consumer import CrawlRequestConsumer
 
-__all__ = ["KafkaEventConsumer"]
+__all__ = ["CrawlRequestConsumer"]
