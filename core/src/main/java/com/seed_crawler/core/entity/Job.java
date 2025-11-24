@@ -1,5 +1,6 @@
 package com.seed_crawler.core.entity;
 
+import com.seed_crawler.core.entity.enums.HttpMethod;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
 import com.seed_crawler.core.entity.enums.JobResponseType;
 import com.seed_crawler.core.entity.enums.JobStatus;
@@ -37,7 +38,11 @@ public class Job extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private JobExecutionType jobExecutionType;
     @Enumerated(EnumType.STRING)
+    private HttpMethod httpMethod = HttpMethod.GET;
+    @Enumerated(EnumType.STRING)
     private JobResponseType responseType;
+    @Column(columnDefinition = "TEXT")
+    private String prompt;
     private String cronExpression;
     private Integer intervalSec;
     private LocalDateTime nextRunAt;
@@ -73,14 +78,17 @@ public class Job extends BaseTimeEntity {
 
     @Builder
     public Job(String title, String description, String targetUrl, ScheduleType scheduleType, String cronExpression, Integer intervalSec,
-               JobExecutionType jobExecutionType, JobResponseType responseType, Map<String, Object> headerParameters, Map<String, Object> queryParameters,
+               JobExecutionType jobExecutionType, HttpMethod httpMethod, JobResponseType responseType, String prompt,
+               Map<String, Object> headerParameters, Map<String, Object> queryParameters,
                Map<String, Object> bodyParameters, int retryLimit, int retryIntervalSec, int timeoutSec, String callbackUrl, Member member) {
         this.title = title;
         this.description = description;
         this.targetUrl = targetUrl;
         this.scheduleType = scheduleType;
         this.jobExecutionType = jobExecutionType;
+        this.httpMethod = httpMethod != null ? httpMethod : HttpMethod.GET;
         this.responseType = responseType;
+        this.prompt = prompt;
         this.cronExpression = cronExpression;
         this.intervalSec = intervalSec;
         this.headerParameters = headerParameters;
@@ -97,6 +105,7 @@ public class Job extends BaseTimeEntity {
 
     public void updateInfo(String title, String description, String targetUrl, ScheduleType scheduleType,
                            String cronExpression, Integer intervalSec, JobExecutionType jobExecutionType,
+                           HttpMethod httpMethod, String prompt,
                            Map<String, Object> headerParameters, Map<String, Object> queryParameters,
                            Map<String, Object> bodyParameters, int retryLimit, int retryIntervalSec,
                            int timeoutSec, String callbackUrl) {
@@ -107,6 +116,8 @@ public class Job extends BaseTimeEntity {
         this.cronExpression = cronExpression;
         this.intervalSec = intervalSec;
         this.jobExecutionType = jobExecutionType;
+        this.httpMethod = httpMethod != null ? httpMethod : HttpMethod.GET;
+        this.prompt = prompt;
         this.headerParameters = headerParameters;
         this.queryParameters = queryParameters;
         this.bodyParameters = bodyParameters;

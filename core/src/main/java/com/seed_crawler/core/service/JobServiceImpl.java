@@ -70,9 +70,11 @@ public class JobServiceImpl implements JobService {
                 .description(command.getDescription())
                 .targetUrl(command.getTargetUrl())
                 .jobExecutionType(command.getJobExecutionType())
+                .httpMethod(command.getHttpMethod())
                 .scheduleType(command.getScheduleType())
                 .cronExpression(parsedSchedule.getCronExpression())
                 .intervalSec(parsedSchedule.getIntervalSec())
+                .prompt(command.getPrompt())
                 .headerParameters(command.getHeaderParameters())
                 .bodyParameters(command.getBodyParameters())
                 .queryParameters(command.getQueryParameters())
@@ -128,6 +130,8 @@ public class JobServiceImpl implements JobService {
         if (!nullSafeEquals(job.getCronExpression(), parsedSchedule.getCronExpression())) changedFields.add("cronExpression");
         if (!nullSafeEquals(job.getIntervalSec(), parsedSchedule.getIntervalSec())) changedFields.add("intervalSec");
         if (job.getJobExecutionType() != command.getJobExecutionType()) changedFields.add("jobExecutionType");
+        if (job.getHttpMethod() != command.getHttpMethod()) changedFields.add("httpMethod");
+        if (!nullSafeEquals(job.getPrompt(), command.getPrompt())) changedFields.add("prompt");
         if (job.getRetryLimit() != retryLimit) changedFields.add("retryLimit");
         if (job.getRetryIntervalSec() != retryIntervalSec) changedFields.add("retryIntervalSec");
         if (job.getTimeoutSec() != timeoutSec) changedFields.add("timeoutSec");
@@ -141,6 +145,8 @@ public class JobServiceImpl implements JobService {
                 parsedSchedule.getCronExpression(),
                 parsedSchedule.getIntervalSec(),
                 command.getJobExecutionType(),
+                command.getHttpMethod(),
+                command.getPrompt(),
                 command.getHeaderParameters(),
                 command.getQueryParameters(),
                 command.getBodyParameters(),
@@ -169,6 +175,8 @@ public class JobServiceImpl implements JobService {
         data.put("cronExpression", job.getCronExpression());
         data.put("intervalSec", job.getIntervalSec());
         data.put("jobExecutionType", job.getJobExecutionType() != null ? job.getJobExecutionType().name() : null);
+        data.put("httpMethod", job.getHttpMethod() != null ? job.getHttpMethod().name() : null);
+        data.put("prompt", job.getPrompt());
         data.put("retryLimit", job.getRetryLimit());
         data.put("retryIntervalSec", job.getRetryIntervalSec());
         data.put("timeoutSec", job.getTimeoutSec());

@@ -1,5 +1,6 @@
 package com.seed_crawler.core.dto;
 
+import com.seed_crawler.core.entity.enums.HttpMethod;
 import com.seed_crawler.core.entity.enums.JobExecutionType;
 import com.seed_crawler.core.entity.enums.ScheduleType;
 import lombok.AllArgsConstructor;
@@ -21,8 +22,10 @@ public class JobDto {
         private String description;
         private String targetUrl;
         private JobExecutionType jobExecutionType;
+        private HttpMethod httpMethod;
         private ScheduleType scheduleType;
         private String schedule;
+        private String prompt;
         private Map<String, Object> headerParameters;
         private Map<String, Object> queryParameters;
         private Map<String, Object> bodyParameters;
@@ -60,8 +63,10 @@ public class JobDto {
         private String description;
         private String targetUrl;
         private JobExecutionType jobExecutionType;
+        private HttpMethod httpMethod;
         private ScheduleType scheduleType;
         private String schedule;
+        private String prompt;
         private Map<String, Object> headerParameters;
         private Map<String, Object> queryParameters;
         private Map<String, Object> bodyParameters;
