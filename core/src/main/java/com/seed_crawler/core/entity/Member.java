@@ -11,7 +11,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @Table(name = "member")
 public class Member extends BaseTimeEntity{
     @Id
@@ -49,10 +49,36 @@ public class Member extends BaseTimeEntity{
     private List<JobWorkHistory> jobWorkHistories = new ArrayList<>();
 
     @Builder
-    public Member(String loginId, String password, String nickname, String email) {
+    public Member(UUID id, String loginId, String password, String nickname, String email) {
+        this.id = id;
         this.loginId = loginId;
         this.password = password;
         this.nickname = nickname;
         this.email = email;
+    }
+    private static final int MAX_FAIL_COUNT = 5;
+
+    public void increasePasswordFailCount() {
+        this.pwFailCnt++;
+        if (this.pwFailCnt >= MAX_FAIL_COUNT) {
+            this.accountLock = true;
+        }
+    }
+
+    public void resetPasswordFailCount() {
+        this.pwFailCnt = 0;
+    }
+
+    public void updateInfo(String nickname, String email) {
+        this.nickname = nickname;
+        this.email = email;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void withdraw() {
+        this.active = false;
     }
 }

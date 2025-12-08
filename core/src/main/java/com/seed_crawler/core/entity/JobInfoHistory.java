@@ -14,7 +14,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class JobInfoHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,9 +30,23 @@ public class JobInfoHistory {
 
     @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
-    private Map<String, Object> data;  // 변경 후 Job 전체 스냅샷
+    private Map<String, Object> beforeData;
 
-    private String changeSummary; // 간단 요약 ex. "URL, 스케줄 변경"
+    @Type(JsonBinaryType.class)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> afterData;
+
+    private String changeSummary;
     private LocalDateTime changedAt = LocalDateTime.now();
 
+    public static JobInfoHistory create(Job job, Member modifiedBy, Map<String, Object> beforeData, Map<String, Object> afterData, String changeSummary) {
+        JobInfoHistory history = new JobInfoHistory();
+        history.job = job;
+        history.modifiedBy = modifiedBy;
+        history.beforeData = beforeData;
+        history.afterData = afterData;
+        history.changeSummary = changeSummary;
+        history.changedAt = LocalDateTime.now();
+        return history;
+    }
 }

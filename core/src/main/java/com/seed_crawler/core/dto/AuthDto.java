@@ -6,34 +6,36 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+public class AuthDto {
 
-public class Signup {
     @Getter
     @AllArgsConstructor
-    public static class Request {
+    public static class LoginRequest {
         private String loginId;
         private String password;
-        private String nickname;
-        private String email;
     }
 
     @Getter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Response {
+    public static class LoginResult {
         private UUID memberId;
         private String loginId;
-        private String nickname;
-        private String email;
+        private TokenResponse token;
+    }
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class LoginResponse {
+        private String loginId;
+        private String accessToken;
     }
 
     @Getter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Result {
-        private UUID memberId;
-        private String loginId;
-        private String nickname;
-        private String email;
+    public static class TokenResponse {
+        private String accessToken;
+        private String refreshToken;
     }
 }

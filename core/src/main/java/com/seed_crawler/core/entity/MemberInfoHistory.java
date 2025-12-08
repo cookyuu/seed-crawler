@@ -14,7 +14,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class MemberInfoHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -36,4 +36,14 @@ public class MemberInfoHistory {
     private String changeSummary;
 
     private LocalDateTime changedAt = LocalDateTime.now();
+
+    public static MemberInfoHistory create(Member member, Map<String, Object> beforeData, Map<String, Object> afterData, String changeSummary) {
+        MemberInfoHistory history = new MemberInfoHistory();
+        history.member = member;
+        history.beforeData = beforeData;
+        history.afterData = afterData;
+        history.changeSummary = changeSummary;
+        history.changedAt = LocalDateTime.now();
+        return history;
+    }
 }
